@@ -1,7 +1,8 @@
-import pymysql
-from urllib.parse import urlparse
+import os
+from dotenv import load_dotenv
 
-DATABASE_URL = "mysql+pymysql://root:38LRh430@139.180.167.165:3306/nzcompanies"
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_db_connection():
     auth_part, rest = DATABASE_URL.split('@')

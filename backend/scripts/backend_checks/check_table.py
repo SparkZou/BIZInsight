@@ -1,6 +1,8 @@
-import pymysql
+import os
+from dotenv import load_dotenv
 
-DATABASE_URL = "mysql+pymysql://root:38LRh430@139.180.167.165:3306/nzcompanies"
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 def check_tables():
     auth_part, rest = DATABASE_URL.split('@')

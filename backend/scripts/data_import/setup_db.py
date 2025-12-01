@@ -1,10 +1,11 @@
 import os
 import csv
 import pymysql
-from urllib.parse import urlparse
+from dotenv import load_dotenv
 
-# Database URL provided by user
-DATABASE_URL = "mysql+pymysql://root:38LRh430@139.180.167.165:3306/nzcompanies"
+# Database URL from environment variable
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Directory containing CSV files
 DATA_DIR = r"c:\Development\AICloud\NZCompanies\Requirments\Companies Office Bulk Data\Data"
