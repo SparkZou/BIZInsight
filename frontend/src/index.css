@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-dark-bg text-white antialiased;
+    }
+}
+
+.glass-panel {
+    @apply bg-dark-card/60 backdrop-blur-md border border-dark-border/50 shadow-xl;
+}
+
+.glass-card {
+    @apply bg-dark-card/40 backdrop-blur-sm border border-dark-border/30 hover:border-neon-blue/50 transition-all duration-300;
+}
+
+.text-glow {
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-neon-blue to-neon-purple;
+}

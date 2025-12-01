@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+alembic
+pymysql
+python-jose[cryptography]
+python-dotenv
+supabase
+pydantic-settings
+email-validator
