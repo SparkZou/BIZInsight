@@ -21,21 +21,44 @@ def search_companies(
         search_term = f"%{q}%"
         
         # Query companies_core_data
-        query = text("""
+        # 1. Search Core Data
+        core_query = text("""
             SELECT 
                 NZBN, 
                 ENTITY_NAME, 
                 ENTITY_STATUS, 
-                ENTITY_TYPE,
+                ENTITY_TYPE, 
                 REGISTRATION_DATE
             FROM companies_core_data 
             WHERE ENTITY_NAME LIKE :search_term OR NZBN LIKE :search_term
             LIMIT :limit
         """)
         
-        result = db.execute(query, {"search_term": search_term, "limit": limit})
+        core_result = db.execute(core_query, {"search_term": search_term, "limit": limit})
+        
+        # 2. Search Directors
+        director_query = text("""
+            SELECT DISTINCT c.NZBN, c.ENTITY_NAME, c.ENTITY_STATUS, c.ENTITY_TYPE, c.REGISTRATION_DATE
+            FROM companies_director d
+            JOIN companies_core_data c ON d.NZBN = c.NZBN
+            WHERE d.FIRST_NAME LIKE :search_term 
+               OR d.MIDDLE_NAMES LIKE :search_term 
+               OR d.LAST_NAME LIKE :search_term
+            LIMIT :limit
+        """)
+        
+        director_result = db.execute(director_query, {"search_term": search_term, "limit": limit})
+        
+        # 3. Merge Results (deduplicate by NZBN)
+        seen_nzbns = set()
         companies = []
-        for row in result:
+        
+        def process_row(row):
+            nzbn = str(row.NZBN)
+            if nzbn in seen_nzbns:
+                return
+            seen_nzbns.add(nzbn)
+            
             try:
                 # Handle date serialization safely
                 reg_date = row.REGISTRATION_DATE
@@ -45,7 +68,7 @@ def search_companies(
                     reg_date_str = str(reg_date) if reg_date else None
 
                 companies.append({
-                    "nzbn": str(row.NZBN), # Ensure string
+                    "nzbn": nzbn,
                     "name": str(row.ENTITY_NAME) if row.ENTITY_NAME else "Unknown",
                     "status": str(row.ENTITY_STATUS) if row.ENTITY_STATUS else "Unknown",
                     "type": str(row.ENTITY_TYPE) if row.ENTITY_TYPE else "Unknown",
@@ -53,7 +76,15 @@ def search_companies(
                 })
             except Exception as row_error:
                 print(f"Error processing row: {row_error}")
-                continue
+
+        for row in core_result:
+            process_row(row)
+            
+        for row in director_result:
+            process_row(row)
+            
+        # Limit total results
+        companies = companies[:limit]
             
         print(f"Returning {len(companies)} results")
         return {
@@ -78,9 +109,24 @@ def get_company_details(
     Get comprehensive information for a specific company by NZBN.
     Includes data from 15+ tables organized by category.
     """
-    # 1. Get Core Data
+    # 1. Get Core Data - try companies_core_data first
     core_query = text("SELECT * FROM companies_core_data WHERE NZBN = :nzbn")
     core_result = db.execute(core_query, {"nzbn": nzbn}).fetchone()
+    
+    # If not found in companies_core_data, try other_incorporated_entities_core_data
+    if not core_result:
+        other_inc_query = text("SELECT * FROM other_incorporated_entities_core_data WHERE NZBN = :nzbn")
+        core_result = db.execute(other_inc_query, {"nzbn": nzbn}).fetchone()
+        
+    # If still not found, try public_sector_entities_core_data
+    if not core_result:
+        public_sector_query = text("SELECT * FROM public_sector_entities_core_data WHERE NZBN = :nzbn")
+        core_result = db.execute(public_sector_query, {"nzbn": nzbn}).fetchone()
+        
+    # If still not found, try unincorporated_entities_core_data
+    if not core_result:
+        uninc_query = text("SELECT * FROM unincorporated_entities_core_data WHERE NZBN = :nzbn")
+        core_result = db.execute(uninc_query, {"nzbn": nzbn}).fetchone()
     
     if not core_result:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -100,16 +146,39 @@ def get_company_details(
     try:
         industry_query = text("SELECT * FROM companies_business_industry_classification WHERE NZBN = :nzbn")
         industry_result = db.execute(industry_query, {"nzbn": nzbn}).fetchall()
-        company_data["industry_classification"] = [dict(row._mapping) for row in industry_result]
-    except Exception:
+        industry_data = []
+        for row in industry_result:
+            row_dict = dict(row._mapping)
+            # Map DB columns to Frontend expected keys
+            row_dict['ANZSIC_CODE'] = row_dict.get('INDUSTRY_CLASSIFICATION_CODE')
+            row_dict['ANZSIC_DESCRIPTION'] = row_dict.get('INDUSTRY_CLASSIFICATION_DESCRIPTION')
+            industry_data.append(row_dict)
+        company_data["industry_classification"] = industry_data
+    except Exception as e:
+        print(f"Error fetching industry classification: {e}")
         company_data["industry_classification"] = []
     
     # GST Registration
     try:
         gst_query = text("SELECT * FROM companies_gst WHERE NZBN = :nzbn")
         gst_result = db.execute(gst_query, {"nzbn": nzbn}).fetchone()
-        company_data["gst"] = dict(gst_result._mapping) if gst_result else None
-    except Exception:
+        if gst_result:
+            gst_data = dict(gst_result._mapping)
+            # Map DB columns to Frontend expected keys
+            gst_data['GST_NUMBER'] = gst_data.get('GST_NUMBER')
+            
+            # Handle date serialization
+            start_date = gst_data.get('START_DATE')
+            if hasattr(start_date, 'isoformat'):
+                gst_data['GST_REGISTRATION_DATE'] = start_date.isoformat()
+            else:
+                gst_data['GST_REGISTRATION_DATE'] = str(start_date) if start_date else None
+                
+            company_data["gst"] = gst_data
+        else:
+            company_data["gst"] = None
+    except Exception as e:
+        print(f"Error fetching GST data: {e}")
         company_data["gst"] = None
     
     # Trading Names

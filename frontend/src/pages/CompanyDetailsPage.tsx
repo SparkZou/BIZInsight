@@ -112,7 +112,7 @@ export default function CompanyDetailsPage() {
                                     {company.gst && (
                                         <span className="flex items-center gap-1">
                                             <Activity className="w-4 h-4 text-neon-green" />
-                                            GST: {company.gst.GST_STATUS_CODE}
+                                            GST: {company.gst.GST_NUMBER}
                                         </span>
                                     )}
                                 </div>
@@ -174,7 +174,7 @@ export default function CompanyDetailsPage() {
                                             <InfoCard label="Australian Business Number (ABN)" value={company.abn.ABN} subValue={company.abn.STATUS} icon={Globe} />
                                         )}
                                         {company.gst && (
-                                            <InfoCard label="GST Status" value={company.gst.GST_STATUS_CODE} subValue={`Effective: ${company.gst.GST_REGISTRATION_DATE}`} icon={CheckCircle} />
+                                            <InfoCard label="GST Number" value={company.gst.GST_NUMBER} subValue={`Effective: ${company.gst.GST_REGISTRATION_DATE}`} icon={CheckCircle} />
                                         )}
                                     </div>
                                 </div>
@@ -183,15 +183,49 @@ export default function CompanyDetailsPage() {
                                     <div>
                                         <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                                             <Briefcase className="w-5 h-5 text-neon-purple" />
-                                            Industry Classification
+                                            Industry Classification (ANZSIC)
                                         </h2>
-                                        <div className="grid gap-4">
-                                            {company.industry_classification.map((ind, idx) => (
-                                                <div key={idx} className="p-4 bg-white/5 rounded-xl border border-white/10">
-                                                    <div className="text-neon-purple font-mono font-bold mb-1">{ind.ANZSIC_CODE}</div>
-                                                    <div className="text-white">{ind.ANZSIC_DESCRIPTION}</div>
-                                                </div>
-                                            ))}
+                                        <div className="grid gap-3">
+                                            {company.industry_classification.map((ind, idx) => {
+                                                // Determine classification level based on code structure
+                                                const code = ind.ANZSIC_CODE || '';
+                                                let level = 'Division';
+                                                let colorClass = 'border-neon-purple/30 bg-neon-purple/5';
+
+                                                if (code.length >= 4) {
+                                                    level = 'Class';
+                                                    colorClass = 'border-neon-blue/30 bg-neon-blue/5';
+                                                } else if (code.length === 3) {
+                                                    level = 'Group';
+                                                    colorClass = 'border-neon-green/30 bg-neon-green/5';
+                                                }
+
+                                                return (
+                                                    <div key={idx} className={`p-4 rounded-xl border ${colorClass} hover:border-opacity-60 transition-all`}>
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-3 mb-2">
+                                                                    <span className="px-3 py-1 bg-white/10 rounded-lg font-mono font-bold text-neon-purple text-sm">
+                                                                        {code}
+                                                                    </span>
+                                                                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                                                        {level}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-white font-medium leading-relaxed">
+                                                                    {ind.ANZSIC_DESCRIPTION}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                <Activity className="w-4 h-4" />
+                                                <span>ANZSIC: Australian and New Zealand Standard Industrial Classification</span>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -281,6 +315,24 @@ export default function CompanyDetailsPage() {
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* Public Address */}
+                                        {company.addresses.public.length > 0 && (
+                                            <div>
+                                                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Public Addresses</h3>
+                                                <div className="space-y-3">
+                                                    {company.addresses.public.map((addr, idx) => (
+                                                        <div key={idx} className="p-4 bg-white/5 rounded-xl border border-white/10">
+                                                            <div className="text-white">{addr.ADDRESS_1}</div>
+                                                            {addr.ADDRESS_2 && <div className="text-white">{addr.ADDRESS_2}</div>}
+                                                            {addr.ADDRESS_3 && <div className="text-white">{addr.ADDRESS_3}</div>}
+                                                            {addr.ADDRESS_4 && <div className="text-white">{addr.ADDRESS_4}</div>}
+                                                            <div className="text-gray-400">{addr.ADDRESS_POSTCODE} {addr.ADDRESS_COUNTRY}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="h-[500px]">
@@ -333,8 +385,8 @@ export default function CompanyDetailsPage() {
                                             <thead className="bg-white/5">
                                                 <tr>
                                                     <th className="p-4 font-semibold text-gray-400">Name</th>
-                                                    <th className="p-4 font-semibold text-gray-400 text-right">Total Shares</th>
-                                                    <th className="p-4 font-semibold text-gray-400 text-right">Allocation</th>
+                                                    <th className="p-4 font-semibold text-gray-400 text-right">Shares</th>
+                                                    <th className="p-4 font-semibold text-gray-400 text-right">Type</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/10">
@@ -342,13 +394,13 @@ export default function CompanyDetailsPage() {
                                                     company.shareholders.map((shareholder, idx) => (
                                                         <tr key={idx} className="hover:bg-white/5 transition-colors">
                                                             <td className="p-4 text-white font-medium">
-                                                                {shareholder.SHAREHOLDER_1_FIRST_NAMES} {shareholder.SHAREHOLDER_1_LAST_NAME}
+                                                                {shareholder.SH_NAME}
                                                             </td>
                                                             <td className="p-4 font-mono text-neon-blue text-right">
-                                                                {shareholder.TOTAL_SHARES}
+                                                                {shareholder.NUMBER_OF_SHARES}
                                                             </td>
                                                             <td className="p-4 text-gray-400 text-right">
-                                                                {shareholder.SHARE_ALLOCATION ? `${shareholder.SHARE_ALLOCATION}%` : '-'}
+                                                                {shareholder.SH_TYPE || '-'}
                                                             </td>
                                                         </tr>
                                                     ))
@@ -436,11 +488,41 @@ export default function CompanyDetailsPage() {
                                 <div className="grid gap-4">
                                     {company.special_entity.maori_business && (
                                         <InfoCard
-                                            label="Maori Business"
+                                            label="Māori Business"
                                             value="Yes"
-                                            subValue="Registered as a Maori Business"
+                                            subValue={`Identifying Factor: ${company.special_entity.maori_business.IDENTIFYING_FACTOR.replace(/_/g, ' ')}`}
                                             icon={Building2}
                                             className="border-neon-purple/50 bg-neon-purple/5"
+                                        />
+                                    )}
+                                    {company.special_entity.other_incorporated && (
+                                        <InfoCard
+                                            label="Other Incorporated Entity"
+                                            value={company.special_entity.other_incorporated.ENTITY_NAME || 'Yes'}
+                                            subValue={[
+                                                company.special_entity.other_incorporated.ENTITY_TYPE ? `Type: ${company.special_entity.other_incorporated.ENTITY_TYPE}` : null,
+                                                company.special_entity.other_incorporated.INCORPORATION_NUMBER ? `Incorporation Number: ${company.special_entity.other_incorporated.INCORPORATION_NUMBER}` : null
+                                            ].filter(Boolean).join(' | ') || undefined}
+                                            icon={Building2}
+                                            className="border-neon-blue/50 bg-neon-blue/5"
+                                        />
+                                    )}
+                                    {company.special_entity.public_sector && (
+                                        <InfoCard
+                                            label="Public Sector Entity"
+                                            value={company.special_entity.public_sector.ENTITY_NAME || 'Yes'}
+                                            subValue={company.special_entity.public_sector.ENTITY_TYPE ? `Type: ${company.special_entity.public_sector.ENTITY_TYPE}` : 'Registered as a Public Sector Entity'}
+                                            icon={Building2}
+                                            className="border-neon-green/50 bg-neon-green/5"
+                                        />
+                                    )}
+                                    {company.special_entity.unincorporated && (
+                                        <InfoCard
+                                            label="Unincorporated Entity"
+                                            value={company.special_entity.unincorporated.ENTITY_NAME || 'Yes'}
+                                            subValue={company.special_entity.unincorporated.ENTITY_TYPE ? `Type: ${company.special_entity.unincorporated.ENTITY_TYPE}` : 'Registered as an Unincorporated Entity'}
+                                            icon={Building2}
+                                            className="border-yellow-500/50 bg-yellow-500/5"
                                         />
                                     )}
                                     {/* Add other special entity types as needed */}

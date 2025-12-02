@@ -11,6 +11,14 @@ export interface Address {
     REGISTERED_OFFICE_ADDRESS_POSTCODE?: string;
     REGISTERED_OFFICE_ADDRESS_COUNTRY?: string;
 
+    // Public Address Fields
+    ADDRESS_1?: string;
+    ADDRESS_2?: string;
+    ADDRESS_3?: string;
+    ADDRESS_4?: string;
+    ADDRESS_POSTCODE?: string;
+    ADDRESS_COUNTRY?: string;
+
     ADDRESS_TYPE?: string; // 'Service', 'Public', 'Office'
 }
 
@@ -25,10 +33,11 @@ export interface Director {
 }
 
 export interface Shareholder {
-    SHAREHOLDER_1_FIRST_NAMES: string;
-    SHAREHOLDER_1_LAST_NAME: string;
-    TOTAL_SHARES: string;
-    SHARE_ALLOCATION?: number;
+    SH_NAME: string;
+    SH_TYPE?: string;
+    NUMBER_OF_SHARES: string;
+    START_DATE?: string;
+    SH_STATUS?: string;
 }
 
 export interface IndustryClassification {
@@ -43,7 +52,7 @@ export interface ABN {
 
 export interface GST {
     GST_REGISTRATION_DATE: string;
-    GST_STATUS_CODE: string;
+    GST_NUMBER: string;
 }
 
 export interface TradingName {
@@ -68,7 +77,10 @@ export interface Insolvency {
 }
 
 export interface MaoriBusiness {
-    MAORI_BUSINESS_INDICATOR: string;
+    NZBN: string;
+    START_DATE: string;
+    IDENTIFYING_FACTOR: string;
+    IDENTIFYING_FACTOR_OTHER_DESC?: number;
 }
 
 export interface CompanyDetails {

@@ -29,3 +29,13 @@ yarn-error.log*
 
 # Large Data Files
 legacy/web/node_modules/
+
+# Temporary test files
+backend/check_*.py
+backend/verify_*.py
+backend/simple_*.py
+backend/query_*.py
+backend/insert_*.py
+backend/list_*.py
+*.pyc
+
