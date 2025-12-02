@@ -2,7 +2,7 @@ import requests
 import json
 
 nzbn = "9429053229694"
-url = f"http://localhost:8000/api/v1/companies/{nzbn}"
+url = f"http://localhost:8001/api/v1/companies/{nzbn}"
 
 try:
     response = requests.get(url)

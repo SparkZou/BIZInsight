@@ -26,7 +26,7 @@ export default function Dashboard() {
         const fetchData = async () => {
             try {
                 // Fetch from Python Backend
-                const res = await fetch('http://localhost:8000/api/v1/dashboard');
+                const res = await fetch('http://localhost:8001/api/v1/dashboard');
                 const json = await res.json();
                 setData(json);
             } catch (error) {

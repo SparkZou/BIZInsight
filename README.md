@@ -188,7 +188,7 @@ pip install -r requirements.txt
 gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
 
 # Or use Uvicorn
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --workers 4
 ```
 
 **Environment Configuration**:

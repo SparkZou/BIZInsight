@@ -19,10 +19,73 @@ export default function CompanyDetailsPage() {
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('overview');
 
+    const [mapLocations, setMapLocations] = useState<Array<{ lat: number; lng: number; label: string; address: string; type: string }>>([]);
+
+    useEffect(() => {
+        if (!company) return;
+
+        const fetchCoordinates = async () => {
+            const locations: Array<{ lat: number; lng: number; label: string; address: string; type: string }> = [];
+
+            // Helper to geocode address
+            const geocodeAddress = async (address: string, type: string, label: string) => {
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ', New Zealand')}`);
+                    const data = await response.json();
+                    if (data && data.length > 0) {
+                        return {
+                            lat: parseFloat(data[0].lat),
+                            lng: parseFloat(data[0].lon),
+                            label,
+                            address,
+                            type
+                        };
+                    }
+                } catch (error) {
+                    console.error(`Error geocoding ${type} address:`, error);
+                }
+                return null;
+            };
+
+            // Process Service Addresses
+            if (company.addresses?.service) {
+                for (const a of company.addresses.service) {
+                    const addressStr = `${a.ADDRESS_FOR_SERVICE_1}, ${a.ADDRESS_FOR_SERVICE_POSTCODE}`;
+                    const location = await geocodeAddress(addressStr, 'Service', 'Service Address');
+                    if (location) locations.push(location);
+                }
+            }
+
+            // Process Registered Office Addresses
+            if (company.addresses?.office) {
+                for (const a of company.addresses.office) {
+                    const addressStr = `${a.REGISTERED_OFFICE_ADDRESS_ADDRESS_1}, ${a.REGISTERED_OFFICE_ADDRESS_POSTCODE}`;
+                    const location = await geocodeAddress(addressStr, 'Office', 'Registered Office');
+                    if (location) locations.push(location);
+                }
+            }
+
+            // If no locations found, fallback to default (Auckland)
+            if (locations.length === 0) {
+                locations.push({
+                    lat: -36.8485,
+                    lng: 174.7633,
+                    label: 'Default Location',
+                    address: 'Auckland, New Zealand',
+                    type: 'Default'
+                });
+            }
+
+            setMapLocations(locations);
+        };
+
+        fetchCoordinates();
+    }, [company]);
+
     useEffect(() => {
         const fetchDetails = async () => {
             try {
-                const res = await fetch(`http://localhost:8000/api/v1/companies/${id}`);
+                const res = await fetch(`http://localhost:8001/api/v1/companies/${id}`);
                 if (!res.ok) throw new Error('Company not found');
                 const data = await res.json();
                 console.log('Company data received:', data);
@@ -60,24 +123,6 @@ export default function CompanyDetailsPage() {
             </div>
         );
     }
-
-    // Prepare map locations
-    const mapLocations = [
-        ...company.addresses.service.map(a => ({
-            lat: -36.8485, // Default for now
-            lng: 174.7633,
-            label: 'Service Address',
-            address: `${a.ADDRESS_FOR_SERVICE_1}, ${a.ADDRESS_FOR_SERVICE_POSTCODE}`,
-            type: 'Service'
-        })),
-        ...company.addresses.office.map(a => ({
-            lat: -36.8585, // Slight offset for demo
-            lng: 174.7633,
-            label: 'Registered Office',
-            address: `${a.REGISTERED_OFFICE_ADDRESS_ADDRESS_1}, ${a.REGISTERED_OFFICE_ADDRESS_POSTCODE}`,
-            type: 'Office'
-        }))
-    ];
 
     const hasInsolvency = company.insolvency && company.insolvency.length > 0;
     const isSpecialEntity = Object.values(company.special_entity).some(v => v !== null);
