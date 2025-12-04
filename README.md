@@ -33,6 +33,10 @@ NZCompanies is a comprehensive business intelligence platform providing real-tim
 ### 🎨 Frontend Interface
 
 - **Landing Page**: 
+  - **Metro Style UI**: Modern tile-based design with neon aesthetics
+  - **Vertical Scrolling Ticker**: Real-time company activity feed
+  - **Persona-based Content**: Tailored views for Job Seekers and Lenders
+  - **AI Predictive Scoring**: Visual indicators for company health and risk
   - 3D starfield background animation (Three.js)
   - Typewriter effect dynamic headlines
   - Responsive design with mobile support
@@ -148,7 +152,7 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-Backend will run at `http://localhost:8000`
+Backend will run at `http://localhost:8001`
 
 ### 4. Frontend Setup
 
@@ -167,8 +171,8 @@ Frontend will run at `http://localhost:5173`
 ### 5. Access Application
 
 - **Frontend**: http://localhost:5173
-- **Backend API Docs**: http://localhost:8000/docs
-- **Backend Redoc**: http://localhost:8000/redoc
+- **Backend API Docs**: http://localhost:8001/docs
+- **Backend Redoc**: http://localhost:8001/redoc
 
 ---
 
@@ -221,7 +225,7 @@ server {
     }
 
     location /api {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:8001;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -237,7 +241,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
 ```
 
 ```dockerfile
@@ -310,7 +314,7 @@ GET /api/v1/companies/{nzbn}
 }
 ```
 
-Full API documentation: `http://localhost:8000/docs`
+Full API documentation: `http://localhost:8001/docs`
 
 ---
 
@@ -377,7 +381,7 @@ Issues and Pull Requests are welcome!
 
 ## 📧 Contact
 
-- **Email**: sales@nzcompanies.com
+- **Email**: Sparksqlmvp@gmail.com
 - **Website**: [NZCompanies Platform](http://localhost:5173)
 
 ---

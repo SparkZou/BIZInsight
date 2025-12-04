@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Menu, X, Building2 } from 'lucide-react';
+import { Search, Menu, X } from 'lucide-react';
 import SearchBar from './SearchBar';
+import BizInsightLogo from './BizInsightLogo';
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,12 +15,17 @@ export default function Navbar() {
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-2 group">
                         <div className="p-2 bg-neon-blue/10 rounded-lg group-hover:bg-neon-blue/20 transition-colors">
-                            <Building2 className="w-6 h-6 text-neon-blue" />
+                            <BizInsightLogo className="w-8 h-8" />
                         </div>
                         <span className="font-bold text-xl tracking-tight text-white group-hover:text-neon-blue transition-colors">
-                            NZ<span className="text-neon-blue">Companies</span>
+                            Biz<span className="text-neon-blue">Insight</span>
                         </span>
                     </Link>
+                    <div className="hidden lg:flex items-center ml-3 pl-3 border-l border-white/10 h-8">
+                        <span className="text-sm font-medium bg-gradient-to-r from-yellow-600 via-yellow-200 to-yellow-600 bg-[length:200%_auto] bg-clip-text text-transparent animate-shimmer">
+                            AI-Powered Business Insights
+                        </span>
+                    </div>
 
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center gap-8">
@@ -71,6 +77,11 @@ export default function Navbar() {
             {isMenuOpen && (
                 <div className="md:hidden glass-panel border-t border-dark-border">
                     <div className="px-4 pt-2 pb-6 space-y-2">
+                        <div className="px-3 py-2 mb-2">
+                            <span className="text-sm font-medium bg-gradient-to-r from-yellow-600 via-yellow-200 to-yellow-600 bg-[length:200%_auto] bg-clip-text text-transparent animate-shimmer">
+                                AI-Powered Business Insights
+                            </span>
+                        </div>
                         <a href="/#features" className="block px-3 py-2 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">Features</a>
                         <a href="/#pricing" className="block px-3 py-2 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">Pricing</a>
                         <a href="/#contact" className="block px-3 py-2 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">Contact</a>

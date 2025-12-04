@@ -47,6 +47,10 @@ export default {
                 'scroll-vertical': {
                     '0%': { transform: 'translateY(0)' },
                     '100%': { transform: 'translateY(-50%)' },
+                },
+                shimmer: {
+                    '0%': { backgroundPosition: '200% 0' },
+                    '100%': { backgroundPosition: '-200% 0' },
                 }
             },
             animation: {
@@ -55,6 +59,7 @@ export default {
                 'glow': 'glow 2s ease-in-out infinite alternate',
                 'scroll': 'scroll 20s linear infinite',
                 'scroll-vertical': 'scroll-vertical 20s linear infinite',
+                'shimmer': 'shimmer 3s linear infinite',
             },
             backgroundImage: {
                 'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

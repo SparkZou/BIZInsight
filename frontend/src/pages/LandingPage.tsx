@@ -9,15 +9,16 @@ import {
 import Navbar from '../components/Navbar';
 import ContactForm from '../components/ContactForm';
 import Background3D from '../components/Background3D';
+import BizInsightLogo from '../components/BizInsightLogo';
 
 // Mock Data for Ticker
 const TICKER_ITEMS = [
-    { type: 'new', text: 'New Registration: TECH INNOVATORS LTD (Auckland)' },
-    { type: 'risk', text: 'High Risk Alert: CONSTRUCTION PLUS (Liquidation)' },
-    { type: 'growth', text: 'Growth Spike: GREEN ENERGY SOL (Revenue +150%)' },
-    { type: 'new', text: 'New Registration: FUTURE AI SYSTEMS (Wellington)' },
-    { type: 'info', text: 'Market Update: Construction Sector Volatility Index +2.3%' },
-    { type: 'growth', text: 'Top Rated: DIGITAL FRONTIER (AI Score 9.8/10)' },
+    { type: 'new', text: 'New Registration: TECH INNOVATORS LTD (Auckland)', rating: 4 },
+    { type: 'risk', text: 'High Risk Alert: CONSTRUCTION PLUS (Liquidation)', rating: 1 },
+    { type: 'growth', text: 'Growth Spike: GREEN ENERGY SOL (Revenue +150%)', rating: 5 },
+    { type: 'new', text: 'New Registration: FUTURE AI SYSTEMS (Wellington)', rating: 3 },
+    { type: 'info', text: 'Market Update: Construction Sector Volatility Index +2.3%', rating: 2 },
+    { type: 'growth', text: 'Top Rated: DIGITAL FRONTIER (AI Score 9.8/10)', rating: 5 },
 ];
 
 export default function LandingPage() {
@@ -69,7 +70,7 @@ export default function LandingPage() {
                                     Live NZ Companies Data Stream
                                 </div>
 
-                                <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight leading-tight">
+                                <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight leading-tight">
                                     {displayedText}
                                     <span className="animate-pulse text-neon-blue">|</span>
                                     <br />
@@ -78,8 +79,11 @@ export default function LandingPage() {
                                     </span>
                                 </h1>
 
-                                <p className="text-xl text-gray-400 mb-10 leading-relaxed max-w-xl">
-                                    Stop guessing. Start knowing. Access real-time insights, AI-powered risk scores, and comprehensive data on <strong className="text-white">1.7M+ New Zealand companies</strong>.
+                                <p className="text-xl text-gray-400 mb-10 leading-relaxed max-w-2xl">
+                                    BizInsight is an AI-powered business insight platform for SMEs and enterprises.
+                                    It combines enterprise knowledge, data analytics, and intelligent automation to deliver instant answers, insights, and decisions.
+                                    <br /><br />
+                                    <span className="text-gray-300">Stop guessing. Start knowing. Access real-time insights, AI-powered risk scores, and comprehensive data on <strong className="text-white">1.7M+ New Zealand companies</strong>.</span>
                                 </p>
 
                                 <div className="flex flex-wrap gap-4 mb-12">
@@ -125,12 +129,12 @@ export default function LandingPage() {
                             </div>
 
                             {/* Right: Vertical Scrolling Table */}
-                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex flex-col h-full">
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex flex-col h-0 min-h-full">
                                 <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                                     <Activity className="w-5 h-5 text-neon-blue" />
                                     Live Company Activity
                                 </h3>
-                                <div className="h-[420px] overflow-hidden relative">
+                                <div className="flex-1 overflow-hidden relative">
                                     {/* Gradient fade at top and bottom */}
                                     <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-dark-card to-transparent z-10 pointer-events-none"></div>
                                     <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-dark-card to-transparent z-10 pointer-events-none"></div>
@@ -143,6 +147,7 @@ export default function LandingPage() {
                                                     <th className="text-left py-3 px-2 text-gray-400 font-semibold text-xs uppercase">Type</th>
                                                     <th className="text-left py-3 px-2 text-gray-400 font-semibold text-xs uppercase">Company</th>
                                                     <th className="text-left py-3 px-2 text-gray-400 font-semibold text-xs uppercase">Location</th>
+                                                    <th className="text-left py-3 px-2 text-gray-400 font-semibold text-xs uppercase">Rating</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -159,6 +164,16 @@ export default function LandingPage() {
                                                         </td>
                                                         <td className="py-3 px-2 text-gray-400">
                                                             {item.text.includes('(') ? item.text.split('(')[1]?.replace(')', '') : '-'}
+                                                        </td>
+                                                        <td className="py-3 px-2">
+                                                            <div className="flex gap-0.5">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Star
+                                                                        key={i}
+                                                                        className={`w-3 h-3 ${i < item.rating ? 'text-neon-blue fill-neon-blue' : 'text-gray-600'}`}
+                                                                    />
+                                                                ))}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -413,11 +428,11 @@ export default function LandingPage() {
                 <footer className="py-12 px-6 border-t border-white/10 bg-black/50 backdrop-blur-xl">
                     <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
                         <div className="flex items-center gap-2">
-                            <Building2 className="w-6 h-6 text-neon-blue" />
-                            <span className="font-bold text-lg text-white">NZ<span className="text-neon-blue">Companies</span></span>
+                            <BizInsightLogo className="w-6 h-6" />
+                            <span className="font-bold text-lg text-white">Biz<span className="text-neon-blue">Insight</span></span>
                         </div>
                         <div className="text-gray-500 text-sm">
-                            © 2025 NZCompanies. All systems nominal.
+                            © 2025 BizInsight. All systems nominal.
                         </div>
                     </div>
                 </footer>

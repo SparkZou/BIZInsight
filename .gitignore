@@ -1,41 +1,138 @@
-# Dependencies
-node_modules/
+# ===================================
+# Python
+# ===================================
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environments
 .venv/
 env/
 venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Environment variables
-.env
+# Python Package Management
+pip-log.txt
+pip-delete-this-directory.txt
+.eggs/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ===================================
+# Node.js / Frontend
+# ===================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # Build outputs
 dist/
 build/
 coverage/
+.next/
+out/
+.nuxt/
+.cache/
 
-# System files
-.DS_Store
-Thumbs.db
+# ===================================
+# Environment & Secrets
+# ===================================
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
 
-# IDEs
+# ===================================
+# Database
+# ===================================
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+
+# Alembic
+alembic/versions/__pycache__/
+
+# ===================================
+# IDEs & Editors
+# ===================================
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
 
+# ===================================
+# Operating System
+# ===================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ===================================
 # Logs
+# ===================================
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+logs/
+*.log.*
 
+# ===================================
+# Testing
+# ===================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# ===================================
+# Project Specific
+# ===================================
 # Large Data Files
-legacy/web/node_modules/
+Coredata/
+legacy/
 
-# Temporary test files
+# Temporary/Test Scripts
 backend/check_*.py
 backend/verify_*.py
 backend/simple_*.py
 backend/query_*.py
 backend/insert_*.py
-backend/list_*.py
-*.pyc
+backend/test_*.py
+backend/import_log.txt
+backend/error_log.txt
 
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
