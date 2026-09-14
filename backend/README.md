@@ -134,7 +134,7 @@ All settings are read from `backend/.env` (see `.env.example`):
 
 ## 📦 Production Deployment
 
-Production runs at https://companies.aicloud.co.nz. nginx serves the built frontend and proxies `/api` to Uvicorn on `127.0.0.1:8001`, managed by systemd. Pushes to `master` deploy through `.github/workflows/deploy.yml`; the server-side files live in [`../deploy`](../deploy).
+Production runs at https://companies.aicloud.co.nz. Caddy serves the built frontend, handles HTTPS and proxies `/api` to Uvicorn on `127.0.0.1:8001`, managed by systemd. Pushes to `master` deploy through `.github/workflows/deploy.yml`; the server-side files live in [`../deploy`](../deploy).
 
 ## 🔐 Security Recommendations
 

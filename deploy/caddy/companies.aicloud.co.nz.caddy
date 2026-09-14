@@ -1,0 +1,22 @@
+# companies.aicloud.co.nz - BIZInsight frontend (static build) + FastAPI backend.
+# Add to the server's Caddyfile (or import it), then: systemctl reload caddy
+# Caddy obtains and renews the HTTPS certificate and redirects HTTP to HTTPS by itself.
+companies.aicloud.co.nz {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8001
+	}
+
+	handle {
+		root * /opt/bizinsight/frontend/dist
+
+		# Vite puts content-hashed files here, so they can be cached for good.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+
+		# Client-side routes (/dashboard, /companies/:id, ...) all serve the SPA.
+		try_files {path} /index.html
+		file_server
+	}
+}
