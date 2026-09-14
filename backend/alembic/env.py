@@ -11,6 +11,7 @@ import os
 sys.path.append(os.getcwd())
 from app.core.config import settings
 from app.models.company import Base
+from app.models import contact  # Register model
 from app.models import retirement_village # Register model
 
 # this is the Alembic Config object, which provides
@@ -28,6 +29,16 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 target_metadata = Base.metadata
+
+# Migrations only manage tables the app owns. The Companies Office data tables are
+# (re)created by scripts/data_import/import_bulk_data.py.
+MANAGED_TABLES = {"contact_messages"}
+
+
+def include_object(object, name, type_, reflected, compare_to):
+    if type_ == "table":
+        return name in MANAGED_TABLES
+    return True
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -51,6 +62,7 @@ def run_migrations_offline() -> None:
     context.configure(
         url=url,
         target_metadata=target_metadata,
+        include_object=include_object,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -74,7 +86,9 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=include_object,
         )
 
         with context.begin_transaction():

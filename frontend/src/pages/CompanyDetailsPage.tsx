@@ -85,7 +85,7 @@ export default function CompanyDetailsPage() {
     useEffect(() => {
         const fetchDetails = async () => {
             try {
-                const res = await fetch(`http://localhost:8001/api/v1/companies/${id}`);
+                const res = await fetch(`/api/v1/companies/${id}`);
                 if (!res.ok) throw new Error('Company not found');
                 const data = await res.json();
                 console.log('Company data received:', data);
@@ -535,7 +535,10 @@ export default function CompanyDetailsPage() {
                                         <InfoCard
                                             label="Māori Business"
                                             value="Yes"
-                                            subValue={`Identifying Factor: ${company.special_entity.maori_business.IDENTIFYING_FACTOR.replace(/_/g, ' ')}`}
+                                            subValue={`Identifying Factors: ${Object.entries(company.special_entity.maori_business)
+                                                .filter(([key, value]) => /^IDENTIFYING_FACTOR_\d+$/.test(key) && value)
+                                                .map(([, value]) => String(value).replace(/_/g, ' ').toLowerCase())
+                                                .join(', ')}`}
                                             icon={Building2}
                                             className="border-neon-purple/50 bg-neon-purple/5"
                                         />

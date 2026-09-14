@@ -1,16 +1,15 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
-from app.db.session import get_db
-from app.models.company import Company
+from sqlalchemy import func, desc, extract
 from app.api import deps
+from app.models.company import Company
 from datetime import date
 
 router = APIRouter()
 
 @router.get("/dashboard")
 def get_dashboard_data(
-    db: Session = Depends(get_db),
+    db: Session = Depends(deps.get_db),
     # current_user = Depends(deps.get_current_user) # Uncomment to enforce auth
 ):
     """
@@ -20,7 +19,7 @@ def get_dashboard_data(
     - Registrations per year
     - Recent registrations
     """
-    
+
     # 1. Total Companies
     total_companies = db.query(func.count(Company.NZBN)).scalar()
 
@@ -36,19 +35,22 @@ def get_dashboard_data(
 
     # 3. Registrations per Year (Last 10 years)
     current_year = date.today().year
+    registration_year = extract("year", Company.REGISTRATION_DATE)
     year_rows = (
-        db.query(func.year(Company.REGISTRATION_DATE).label("year"), func.count(Company.NZBN).label("count"))
+        db.query(registration_year.label("year"), func.count(Company.NZBN).label("count"))
         .filter(Company.REGISTRATION_DATE.isnot(None))
-        .filter(func.year(Company.REGISTRATION_DATE) >= current_year - 10)
-        .group_by(func.year(Company.REGISTRATION_DATE))
+        .filter(registration_year >= current_year - 10)
+        .group_by(registration_year)
         .order_by("year")
         .all()
     )
-    registrations_per_year = [{"year": row.year, "count": row.count} for row in year_rows]
+    # PostgreSQL's EXTRACT returns a numeric; the chart expects whole years.
+    registrations_per_year = [{"year": int(row.year), "count": row.count} for row in year_rows]
 
     # 4. Recent Registrations
     recent_rows = (
         db.query(Company)
+        .filter(Company.REGISTRATION_DATE.isnot(None))
         .order_by(desc(Company.REGISTRATION_DATE))
         .limit(10)
         .all()

@@ -1,7 +1,9 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from supabase import create_client, Client
+from sqlalchemy.orm import Session
 from app.core.config import settings
+from app.db.session import SessionLocal
 
 security = HTTPBearer()
 
@@ -9,6 +11,16 @@ security = HTTPBearer()
 supabase: Client = None
 if settings.SUPABASE_URL and settings.SUPABASE_KEY:
     supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+
+def get_db():
+    """
+    Dependency for getting database session.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """

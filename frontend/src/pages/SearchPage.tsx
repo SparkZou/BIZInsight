@@ -27,7 +27,7 @@ export default function SearchPage() {
             setLoading(true);
             setError('');
             try {
-                const res = await fetch(`http://localhost:8001/api/v1/companies/search?q=${encodeURIComponent(query)}`);
+                const res = await fetch(`/api/v1/companies/search?q=${encodeURIComponent(query)}`);
                 if (!res.ok) throw new Error('Failed to fetch results');
                 const data = await res.json();
                 setResults(data.results);

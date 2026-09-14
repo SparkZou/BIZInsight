@@ -79,8 +79,9 @@ export interface Insolvency {
 export interface MaoriBusiness {
     NZBN: string;
     START_DATE: string;
-    IDENTIFYING_FACTOR: string;
-    IDENTIFYING_FACTOR_OTHER_DESC?: number;
+    // The bulk data lists up to nine factors as IDENTIFYING_FACTOR_1 .. IDENTIFYING_FACTOR_9
+    [factor: `IDENTIFYING_FACTOR_${number}`]: string | null | undefined;
+    IDENTIFYING_FACTOR_FREE_TEXT?: string | null;
 }
 
 export interface CompanyDetails {
