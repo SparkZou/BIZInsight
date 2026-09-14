@@ -1,0 +1,92 @@
+# ============================================================
+# BIZInsight — https://companies.aicloud.co.nz
+# Path on server: /opt/webApp/bizinsight (git checkout of SparkZou/BIZInsight)
+#
+#   bizinsight-frontend : static SPA (nginx), serves frontend/dist uploaded by GitHub Actions
+#   bizinsight-backend  : FastAPI (/api/*), on both networks
+#   bizinsight-db       : Postgres 16, internal only (bizinsight-net)
+#
+# The shared Caddy (/opt/webApp/caddy) terminates TLS and routes:
+#   /api/*  -> bizinsight-backend:8000
+#   the rest -> bizinsight-frontend:80
+# Site block: deploy/caddy/companies.aicloud.co.nz.caddy
+#
+# Secrets come from ./.env (POSTGRES_PASSWORD) — not committed.
+# ============================================================
+
+# Pinned so the project (and its volume) name never depends on the checkout directory.
+name: bizinsight
+
+services:
+  bizinsight-frontend:
+    image: nginx:alpine
+    container_name: bizinsight-frontend
+    restart: unless-stopped
+    volumes:
+      # The parent directory is mounted (not dist itself) so deploy.sh can swap in a new
+      # build with a rename and nginx picks it up without a restart.
+      - ./frontend:/srv/frontend:ro
+      - ./deploy/nginx/frontend.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - shared-proxy-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--output-document=/dev/null", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  bizinsight-backend:
+    build: ./backend
+    image: bizinsight-backend:latest
+    container_name: bizinsight-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://bizinsight:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@bizinsight-db:5432/nzcompanies
+      BACKEND_CORS_ORIGINS: https://companies.aicloud.co.nz
+    volumes:
+      # Unzipped Companies Office bulk CSVs, for scripts/data_import/import_bulk_data.py /data
+      - ./data:/data:ro
+    depends_on:
+      bizinsight-db:
+        condition: service_healthy
+    networks:
+      - bizinsight-net
+      - shared-proxy-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/').status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+
+  bizinsight-db:
+    image: postgres:16-alpine
+    container_name: bizinsight-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nzcompanies
+      POSTGRES_USER: bizinsight
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - bizinsight-db-data:/var/lib/postgresql/data
+    ports:
+      # Loopback only: Docker publishes ports straight into iptables and bypasses UFW.
+      # Admin access goes through a tunnel: ssh -L 5436:127.0.0.1:5436 ubuntu@223.165.71.59
+      - "127.0.0.1:5436:5432"
+    networks:
+      - bizinsight-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bizinsight -d nzcompanies"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  shared-proxy-network:
+    external: true
+    name: shared-proxy-network
+  bizinsight-net:
+    driver: bridge
+
+volumes:
+  bizinsight-db-data:

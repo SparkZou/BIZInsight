@@ -3,38 +3,37 @@
 # after it has uploaded the frontend build to frontend/dist.new.
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/bizinsight}"
+APP_DIR="${APP_DIR:-/opt/webApp/bizinsight}"
 BRANCH="${BRANCH:-master}"
-SERVICE="bizinsight-api"
-SUDO=""
-if [ "$(id -u)" -ne 0 ]; then SUDO="sudo -n"; fi
+
+DOCKER="docker"
+if ! docker info > /dev/null 2>&1; then DOCKER="sudo -n docker"; fi
 
 cd "$APP_DIR"
 git fetch --quiet origin "$BRANCH"
-git reset --hard --quiet "origin/$BRANCH"
+git checkout --quiet -B "$BRANCH" "origin/$BRANCH"
 
-# Backend: dependencies, migrations, restart.
-cd "$APP_DIR/backend"
-[ -d venv ] || python3 -m venv venv
-venv/bin/pip install --quiet --upgrade pip
-venv/bin/pip install --quiet -r requirements.txt
-venv/bin/alembic upgrade head
-$SUDO systemctl restart "$SERVICE"
-
-# Frontend: swap in the new build in one step so visitors never see a half-copied dist.
-cd "$APP_DIR/frontend"
-if [ -d dist.new ]; then
-    rm -rf dist.old
-    [ -d dist ] && mv dist dist.old
-    mv dist.new dist
+# Frontend: swap in the new build with renames so visitors never see a half-copied dist.
+# The container mounts ./frontend, so nginx serves the new directory straight away.
+if [ -d frontend/dist.new ]; then
+    rm -rf frontend/dist.old
+    if [ -d frontend/dist ]; then mv frontend/dist frontend/dist.old; fi
+    mv frontend/dist.new frontend/dist
 fi
 
-for attempt in $(seq 1 15); do
-    if curl -fsS http://127.0.0.1:8001/ > /dev/null; then
-        echo "Deployed $(git -C "$APP_DIR" rev-parse --short HEAD); API is up."
+# Backend: rebuild if needed; the container runs "alembic upgrade head" on start.
+$DOCKER compose up -d --build --remove-orphans
+
+for attempt in $(seq 1 40); do
+    status="$($DOCKER inspect --format '{{.State.Health.Status}}' bizinsight-backend 2> /dev/null || echo missing)"
+    if [ "$status" = "healthy" ]; then
+        $DOCKER image prune -f > /dev/null
+        echo "Deployed $(git rev-parse --short HEAD); bizinsight-backend is healthy."
         exit 0
     fi
-    sleep 2
+    sleep 3
 done
-echo "API did not come up; check: journalctl -u $SERVICE -n 50" >&2
+
+echo "bizinsight-backend did not become healthy (status: $status)" >&2
+$DOCKER compose logs --tail 50 bizinsight-backend >&2
 exit 1

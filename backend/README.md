@@ -134,7 +134,15 @@ All settings are read from `backend/.env` (see `.env.example`):
 
 ## 📦 Production Deployment
 
-Production runs at https://companies.aicloud.co.nz. Caddy serves the built frontend, handles HTTPS and proxies `/api` to Uvicorn on `127.0.0.1:8001`, managed by systemd. Pushes to `master` deploy through `.github/workflows/deploy.yml`; the server-side files live in [`../deploy`](../deploy).
+Production runs at https://companies.aicloud.co.nz with Docker Compose ([`../docker-compose.yml`](../docker-compose.yml)) in `/opt/webApp/bizinsight`: an nginx container for the built frontend, this API, and a PostgreSQL 16 container. The server's shared Caddy handles HTTPS and routes `/api/*` to the API. Pushes to `master` deploy through `.github/workflows/deploy.yml`; the server-side files live in [`../deploy`](../deploy).
+
+Import or refresh the bulk data on the server:
+
+```bash
+cd /opt/webApp/bizinsight
+unzip -o bulk-data.zip -d data/        # CSVs must end up directly in ./data
+docker compose exec bizinsight-backend python scripts/data_import/import_bulk_data.py /data
+```
 
 ## 🔐 Security Recommendations
 

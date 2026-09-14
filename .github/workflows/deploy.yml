@@ -47,7 +47,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           source: frontend/dist/*
-          target: /opt/bizinsight/frontend/dist.new
+          target: /opt/webApp/bizinsight/frontend/dist.new
           strip_components: 2
           rm: true
 
@@ -57,4 +57,5 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: bash /opt/bizinsight/deploy/deploy.sh
+          command_timeout: 20m
+          script: bash /opt/webApp/bizinsight/deploy/deploy.sh

@@ -1,22 +1,27 @@
-# companies.aicloud.co.nz - BIZInsight frontend (static build) + FastAPI backend.
-# Add to the server's Caddyfile (or import it), then: systemctl reload caddy
-# Caddy obtains and renews the HTTPS certificate and redirects HTTP to HTTPS by itself.
+# >>> companies.aicloud.co.nz (BIZInsight — /opt/webApp/bizinsight) >>>
+# BIZInsight —— 新西兰公司数据查询 https://companies.aicloud.co.nz
+# 追加到 /opt/webApp/caddy/Caddyfile 后热加载：
+#   docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+# 容器（网络 shared-proxy-network）：
+#   bizinsight-frontend : 前端静态 SPA（nginx），SPA fallback 在容器内部处理
+#   bizinsight-backend  : FastAPI，监听 8000（/api/*）
+# 证书由 Caddy 自动签发/续期。HSTS 不带 includeSubDomains，以免影响其它 aicloud.co.nz 子域。
 companies.aicloud.co.nz {
-	encode gzip
-
-	handle /api/* {
-		reverse_proxy 127.0.0.1:8001
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
 	}
-
+	request_body {
+		max_size 1MB
+	}
+	handle /api/* {
+		reverse_proxy bizinsight-backend:8000
+	}
 	handle {
-		root * /opt/bizinsight/frontend/dist
-
-		# Vite puts content-hashed files here, so they can be cached for good.
-		@assets path /assets/*
-		header @assets Cache-Control "public, max-age=31536000, immutable"
-
-		# Client-side routes (/dashboard, /companies/:id, ...) all serve the SPA.
-		try_files {path} /index.html
-		file_server
+		reverse_proxy bizinsight-frontend:80
 	}
 }
+# <<< companies.aicloud.co.nz <<<
