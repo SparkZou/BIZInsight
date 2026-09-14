@@ -181,13 +181,15 @@ Production runs at **https://companies.aicloud.co.nz** on a server where every a
 
 Every push to `master` deploys automatically. The workflow needs the repository secrets `DEPLOY_HOST`, `DEPLOY_USER` and `DEPLOY_SSH_KEY`. The database password lives only in `/opt/webApp/bizinsight/.env` on the server.
 
-Refresh the Companies Office data (monthly) on the server:
+### Monthly data refresh
 
-```bash
-cd /opt/webApp/bizinsight
-python3 -m zipfile -e bulk-data.zip data/
-docker compose exec bizinsight-backend python scripts/data_import/import_bulk_data.py /data
+Download the Companies Office bulk data zip, then run from the repo on Windows:
+
+```powershell
+.\deploy\import-bulk-data.ps1 "$HOME\Downloads\Companies Office Bulk Data September 2026.zip"
 ```
+
+It uploads the zip, extracts it on the server and runs the importer ([deploy/import-bulk-data.sh](deploy/import-bulk-data.sh)). Each table is rebuilt next to the live one and swapped in when complete, so the site stays up during the import.
 
 ---
 
