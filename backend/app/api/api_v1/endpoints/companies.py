@@ -139,6 +139,16 @@ def get_company_details(
         uninc_query = text("SELECT * FROM unincorporated_entities_core_data WHERE NZBN = :nzbn")
         core_result = db.execute(uninc_query, {"nzbn": nzbn}).fetchone()
 
+    # If still not found, try charitable_trust_boards_core_data. Charitable trust boards were
+    # split out of other_incorporated_entities_core_data in later bulk data releases, so older
+    # imports don't have this table.
+    if not core_result:
+        try:
+            charitable_query = text("SELECT * FROM charitable_trust_boards_core_data WHERE NZBN = :nzbn")
+            core_result = db.execute(charitable_query, {"nzbn": nzbn}).fetchone()
+        except Exception:
+            core_result = None
+
     if not core_result:
         raise HTTPException(status_code=404, detail="Company not found")
 
@@ -290,6 +300,14 @@ def get_company_details(
         special_entity["other_incorporated"] = upper_keys(other_inc_result) if other_inc_result else None
     except Exception:
         special_entity["other_incorporated"] = None
+
+    # Charitable Trust Boards
+    try:
+        charitable_query = text("SELECT * FROM charitable_trust_boards_core_data WHERE NZBN = :nzbn")
+        charitable_result = db.execute(charitable_query, {"nzbn": nzbn}).fetchone()
+        special_entity["charitable_trust_board"] = upper_keys(charitable_result) if charitable_result else None
+    except Exception:
+        special_entity["charitable_trust_board"] = None
 
     # Public Sector Entities
     try:

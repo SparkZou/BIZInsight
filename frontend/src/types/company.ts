@@ -79,7 +79,9 @@ export interface Insolvency {
 export interface MaoriBusiness {
     NZBN: string;
     START_DATE: string;
-    // The bulk data lists up to nine factors as IDENTIFYING_FACTOR_1 .. IDENTIFYING_FACTOR_9
+    // Bulk data releases have used both a single IDENTIFYING_FACTOR column (e.g. September 2026)
+    // and numbered IDENTIFYING_FACTOR_1 .. IDENTIFYING_FACTOR_9 columns (e.g. February 2025).
+    IDENTIFYING_FACTOR?: string | null;
     [factor: `IDENTIFYING_FACTOR_${number}`]: string | null | undefined;
     IDENTIFYING_FACTOR_FREE_TEXT?: string | null;
 }
@@ -119,6 +121,7 @@ export interface CompanyDetails {
     special_entity: {
         maori_business?: MaoriBusiness;
         other_incorporated?: any;
+        charitable_trust_board?: any;
         public_sector?: any;
         unincorporated?: any;
     };

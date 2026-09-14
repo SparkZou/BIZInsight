@@ -75,7 +75,12 @@ DATASETS = {
     },
     "other_incorporated_entities_core_data": {
         "name": "Other Incorporated Entities",
-        "description": "All registered and removed charitable trusts, incorporated societies and limited partnerships.",
+        "description": "All registered and removed incorporated societies and limited partnerships.",
+        "category": "entities"
+    },
+    "charitable_trust_boards_core_data": {
+        "name": "Charitable Trust Boards",
+        "description": "All registered and removed charitable trust boards.",
         "category": "entities"
     },
     "unincorporated_entities_core_data": {
@@ -104,17 +109,17 @@ DATASETS = {
 async def get_dataset_statistics(db: Session = Depends(deps.get_db)) -> Dict:
     """
     Get statistics for all datasets including record counts.
-    Returns metadata and current counts for all 18 data tables.
+    Returns metadata and current counts for every Companies Office data table.
     """
     results = []
-    
+
     for table_name, metadata in DATASETS.items():
         try:
             # Get count for this table
             count_query = text(f"SELECT COUNT(*) FROM {table_name}")
             result = db.execute(count_query)
             count = result.scalar()
-            
+
             results.append({
                 "tableName": table_name,
                 "name": metadata["name"],
@@ -123,16 +128,18 @@ async def get_dataset_statistics(db: Session = Depends(deps.get_db)) -> Dict:
                 "count": count or 0
             })
         except Exception as e:
-            # If table doesn't exist or error occurs, set count to 0
+            # If table doesn't exist or error occurs, set count to 0. Details go to the
+            # server log only; raw SQL errors must not reach public responses.
+            print(f"Error counting {table_name}: {e}")
             results.append({
                 "tableName": table_name,
                 "name": metadata["name"],
                 "description": metadata["description"],
                 "category": metadata["category"],
                 "count": 0,
-                "error": str(e)
+                "error": "Table unavailable"
             })
-    
+
     # Calculate totals by category
     totals = {
         "companies": sum(r["count"] for r in results if r["category"] == "companies"),
@@ -140,7 +147,7 @@ async def get_dataset_statistics(db: Session = Depends(deps.get_db)) -> Dict:
         "other": sum(r["count"] for r in results if r["category"] == "other"),
         "total": sum(r["count"] for r in results)
     }
-    
+
     return {
         "datasets": results,
         "totals": totals

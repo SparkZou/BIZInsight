@@ -536,11 +536,24 @@ export default function CompanyDetailsPage() {
                                             label="Māori Business"
                                             value="Yes"
                                             subValue={`Identifying Factors: ${Object.entries(company.special_entity.maori_business)
-                                                .filter(([key, value]) => /^IDENTIFYING_FACTOR_\d+$/.test(key) && value)
+                                                // IDENTIFYING_FACTOR or IDENTIFYING_FACTOR_1..9, depending on the bulk data release
+                                                .filter(([key, value]) => /^IDENTIFYING_FACTOR(_\d+)?$/.test(key) && value)
                                                 .map(([, value]) => String(value).replace(/_/g, ' ').toLowerCase())
                                                 .join(', ')}`}
                                             icon={Building2}
                                             className="border-neon-purple/50 bg-neon-purple/5"
+                                        />
+                                    )}
+                                    {company.special_entity.charitable_trust_board && (
+                                        <InfoCard
+                                            label="Charitable Trust Board"
+                                            value={company.special_entity.charitable_trust_board.ENTITY_NAME || 'Yes'}
+                                            subValue={[
+                                                company.special_entity.charitable_trust_board.CHARITIES_REGISTER_NUMBER ? `Charities Register: ${company.special_entity.charitable_trust_board.CHARITIES_REGISTER_NUMBER}` : null,
+                                                company.special_entity.charitable_trust_board.INCORPORATION_NUMBER ? `Incorporation Number: ${company.special_entity.charitable_trust_board.INCORPORATION_NUMBER}` : null
+                                            ].filter(Boolean).join(' | ') || undefined}
+                                            icon={Building2}
+                                            className="border-neon-green/50 bg-neon-green/5"
                                         />
                                     )}
                                     {company.special_entity.other_incorporated && (
