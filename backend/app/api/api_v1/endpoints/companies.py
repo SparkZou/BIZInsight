@@ -102,12 +102,13 @@ def search_companies(
             "results": companies
         }
     except Exception as e:
+        # Details go to the server log only; raw SQL errors must not reach public responses.
         print(f"Error in search endpoint: {e}")
         # Return empty list instead of 500 to avoid breaking frontend
         return {
             "count": 0,
             "results": [],
-            "error": str(e)
+            "error": "Search failed"
         }
 
 @router.get("/{nzbn}")
