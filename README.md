@@ -183,13 +183,15 @@ Every push to `master` deploys automatically. The workflow needs the repository 
 
 ### Monthly data refresh
 
-Download the Companies Office bulk data zip, then run from the repo on Windows:
+Log in at **https://companies.aicloud.co.nz/admin** and upload the Companies Office bulk data zip (or its CSV files). The import runs in the background with a progress log; each table is rebuilt next to the live one and swapped in when complete, so the site stays up. Uploads are checked first: unknown file names, missing columns and files that were cut short (for example re-saved from Excel) are refused.
+
+The admin account comes from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in the server's `.env`; five failed logins from one address lock it out for 15 minutes.
+
+Command-line alternative from Windows (uploads the zip and runs [deploy/import-bulk-data.sh](deploy/import-bulk-data.sh) on the server):
 
 ```powershell
 .\deploy\import-bulk-data.ps1 "$HOME\Downloads\Companies Office Bulk Data September 2026.zip"
 ```
-
-It uploads the zip, extracts it on the server and runs the importer ([deploy/import-bulk-data.sh](deploy/import-bulk-data.sh)). Each table is rebuilt next to the live one and swapped in when complete, so the site stays up during the import.
 
 ---
 

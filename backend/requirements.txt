@@ -5,6 +5,7 @@ alembic
 psycopg[binary]
 python-jose[cryptography]
 python-dotenv
+python-multipart
 supabase
 pydantic-settings
 email-validator

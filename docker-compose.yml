@@ -3,7 +3,7 @@
 # Path on server: /opt/webApp/bizinsight (git checkout of SparkZou/BIZInsight)
 #
 #   bizinsight-frontend : static SPA (nginx), serves frontend/dist uploaded by GitHub Actions
-#   bizinsight-backend  : FastAPI (/api/*), on both networks
+#   bizinsight-backend  : FastAPI (/api/*, including the /admin bulk data import), on both networks
 #   bizinsight-db       : Postgres 16, internal only (bizinsight-net)
 #
 # The shared Caddy (/opt/webApp/caddy) terminates TLS and routes:
@@ -11,7 +11,7 @@
 #   the rest -> bizinsight-frontend:80
 # Site block: deploy/caddy/companies.aicloud.co.nz.caddy
 #
-# Secrets come from ./.env (POSTGRES_PASSWORD) — not committed.
+# Secrets come from ./.env (POSTGRES_PASSWORD, ADMIN_PASSWORD, ADMIN_SECRET_KEY) — not committed.
 # ============================================================
 
 # Pinned so the project (and its volume) name never depends on the checkout directory.
@@ -40,12 +40,19 @@ services:
     image: bizinsight-backend:latest
     container_name: bizinsight-backend
     restart: unless-stopped
+    # Same uid/gid as the server's ubuntu user, so bulk data uploaded through /admin into ./data
+    # stays manageable from the host (deploy/import-bulk-data.sh writes there too).
+    user: "1000:1000"
     environment:
       DATABASE_URL: postgresql+psycopg://bizinsight:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@bizinsight-db:5432/nzcompanies
       BACKEND_CORS_ORIGINS: https://companies.aicloud.co.nz
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:-}
+      DATA_DIR: /data
     volumes:
-      # Unzipped Companies Office bulk CSVs, for scripts/data_import/import_bulk_data.py /data
-      - ./data:/data:ro
+      # Companies Office bulk CSVs: written by the /admin import and deploy/import-bulk-data.sh
+      - ./data:/data
     depends_on:
       bizinsight-db:
         condition: service_healthy

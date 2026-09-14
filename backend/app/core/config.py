@@ -12,6 +12,17 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed CORS origins ("*" allows all)
     BACKEND_CORS_ORIGINS: str = "*"
 
+    # Admin page (/admin). Login stays disabled until ADMIN_PASSWORD is set.
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: Optional[str] = None
+    # Signs admin session cookies; without it sessions end whenever the API restarts.
+    ADMIN_SECRET_KEY: Optional[str] = None
+    ADMIN_SESSION_HOURS: int = 12
+    # Secure cookies are only sent over HTTPS; set to false for plain-http local development.
+    ADMIN_COOKIE_SECURE: bool = True
+    # Where bulk data uploaded through /admin is stored.
+    DATA_DIR: str = "/data"
+
     # Supabase
     SUPABASE_URL: Optional[str] = None
     SUPABASE_KEY: Optional[str] = None

@@ -122,6 +122,14 @@ Once running, access interactive API docs at:
 ### Statistics
 - `GET /api/stats/datasets` - Record counts for every imported dataset
 
+### Admin (behind the `/admin` page; session cookie required except for login)
+- `POST /api/v1/admin/login` - Log in with `{"username", "password"}`
+- `POST /api/v1/admin/logout` - End the session
+- `GET /api/v1/admin/session` - Current admin, or 401
+- `POST /api/v1/admin/imports` - Upload bulk data (`files`: the zip and/or CSVs; `allow_row_drop`) and start an import
+- `GET /api/v1/admin/imports` - Recent imports
+- `GET /api/v1/admin/imports/{id}` - One import with its log
+
 ## ⚙️ Configuration
 
 All settings are read from `backend/.env` (see `.env.example`):
@@ -130,6 +138,10 @@ All settings are read from `backend/.env` (see `.env.example`):
 |---|---|
 | `DATABASE_URL` | `postgresql+psycopg://user:password@host:5432/nzcompanies` |
 | `BACKEND_CORS_ORIGINS` | Comma-separated allowed origins, e.g. `https://companies.aicloud.co.nz` (default `*`) |
+| `ADMIN_USERNAME`, `ADMIN_PASSWORD` | The `/admin` account; login is disabled while the password is empty |
+| `ADMIN_SECRET_KEY` | Signs admin session cookies (e.g. `openssl rand -hex 32`); without it sessions end on restart |
+| `ADMIN_COOKIE_SECURE` | `false` for local development over plain http (default `true`) |
+| `DATA_DIR` | Where uploaded bulk data is stored (default `/data`) |
 | `SUPABASE_URL`, `SUPABASE_KEY` | Optional, only for the (disabled) auth dependency |
 
 ## 📦 Production Deployment

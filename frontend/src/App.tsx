@@ -3,6 +3,7 @@ import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import SearchPage from './pages/SearchPage';
 import CompanyDetailsPage from './pages/CompanyDetailsPage';
+import AdminPage from './pages/AdminPage';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/companies/:id" element={<CompanyDetailsPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Router>
   );

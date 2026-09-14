@@ -12,6 +12,7 @@ sys.path.append(os.getcwd())
 from app.core.config import settings
 from app.models.company import Base
 from app.models import contact  # Register model
+from app.models import import_job  # Register model
 from app.models import retirement_village # Register model
 
 # this is the Alembic Config object, which provides
@@ -31,8 +32,8 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Migrations only manage tables the app owns. The Companies Office data tables are
-# (re)created by scripts/data_import/import_bulk_data.py.
-MANAGED_TABLES = {"contact_messages"}
+# (re)created by app/services/bulk_import.py.
+MANAGED_TABLES = {"contact_messages", "import_jobs"}
 
 
 def include_object(object, name, type_, reflected, compare_to):
