@@ -129,6 +129,10 @@ Once running, access interactive API docs at:
 - `POST /api/v1/admin/imports` - Upload bulk data (`files`: the zip and/or CSVs; `allow_row_drop`) and start an import
 - `GET /api/v1/admin/imports` - Recent imports
 - `GET /api/v1/admin/imports/{id}` - One import with its log
+- `GET /api/v1/admin/new-companies/months` - Months with registrations, and the latest month in the data
+- `GET /api/v1/admin/new-companies/summary?month=2026-08` - A month's registrations by status, type, industry and city
+- `GET /api/v1/admin/new-companies?month=2026-08&q=&status=&page=1&page_size=50` - A month's new companies with their directors, industry, addresses, shareholder count, GST and website
+- `GET /api/v1/admin/new-companies/export?month=2026-08` - The same list as CSV
 
 ## ⚙️ Configuration
 

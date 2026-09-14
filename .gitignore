@@ -61,6 +61,8 @@ out/
 *.sqlite
 *.sqlite3
 *.sql
+# ...but keep the example analysis queries
+!docs/sql/*.sql
 
 # Alembic
 alembic/versions/__pycache__/

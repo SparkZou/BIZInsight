@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DragEvent, FormEvent, ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import type { DragEvent } from 'react';
 import {
-    AlertTriangle, CheckCircle, Database, FileText, Loader2, Lock, LogOut, UploadCloud, X, XCircle
+    AlertTriangle, CheckCircle, Database, FileText, Loader2, UploadCloud, X, XCircle
 } from 'lucide-react';
-import BizInsightLogo from '../components/BizInsightLogo';
-import LoadingSpinner from '../components/LoadingSpinner';
-
-const API = '/api/v1/admin';
+import { ADMIN_API } from './api';
 
 interface ImportJob {
     id: number;
@@ -37,113 +33,6 @@ const formatBytes = (bytes: number) =>
 
 const formatTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : '-');
 
-function Shell({ children, actions }: { children: ReactNode; actions?: ReactNode }) {
-    return (
-        <div className="min-h-screen bg-dark-bg text-white">
-            <header className="glass-panel border-b border-dark-border/50">
-                <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2">
-                        <BizInsightLogo className="w-7 h-7" />
-                        <span className="font-bold text-lg">Biz<span className="text-neon-blue">Insight</span></span>
-                        <span className="ml-2 px-2 py-0.5 text-xs font-semibold rounded bg-neon-purple/10 text-neon-purple border border-neon-purple/30">Admin</span>
-                    </Link>
-                    {actions}
-                </div>
-            </header>
-            <main className="max-w-6xl mx-auto px-6 py-10">{children}</main>
-        </div>
-    );
-}
-
-export default function AdminPage() {
-    // undefined while checking the session, null when logged out
-    const [username, setUsername] = useState<string | null | undefined>(undefined);
-
-    useEffect(() => {
-        fetch(`${API}/session`)
-            .then(res => (res.ok ? res.json() : null))
-            .then(data => setUsername(data?.username ?? null))
-            .catch(() => setUsername(null));
-    }, []);
-
-    const logout = useCallback(async () => {
-        await fetch(`${API}/logout`, { method: 'POST' }).catch(() => undefined);
-        setUsername(null);
-    }, []);
-
-    if (username === undefined) {
-        return <Shell><LoadingSpinner /></Shell>;
-    }
-    if (!username) {
-        return <Shell><LoginForm onLogin={setUsername} /></Shell>;
-    }
-    return (
-        <Shell actions={
-            <button onClick={logout} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white">
-                <LogOut className="w-4 h-4" /> {username}
-            </button>
-        }>
-            <ImportDashboard onSessionExpired={() => setUsername(null)} />
-        </Shell>
-    );
-}
-
-function LoginForm({ onLogin }: { onLogin: (username: string) => void }) {
-    const [form, setForm] = useState({ username: '', password: '' });
-    const [error, setError] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-
-    const submit = async (e: FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-        setError('');
-        try {
-            const res = await fetch(`${API}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok) {
-                onLogin(data.username);
-            } else {
-                setError(typeof data.detail === 'string' ? data.detail : 'Login failed');
-            }
-        } catch {
-            setError('Could not reach the server');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <form onSubmit={submit} className="glass-panel max-w-sm mx-auto mt-16 p-8 rounded-2xl space-y-5">
-            <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-neon-blue/10 border border-neon-blue/20"><Lock className="w-5 h-5 text-neon-blue" /></div>
-                <h1 className="text-xl font-bold">Admin login</h1>
-            </div>
-            <input
-                className="w-full px-4 py-3 bg-dark-bg/50 border border-dark-border rounded-lg outline-none focus:ring-2 focus:ring-neon-blue"
-                placeholder="Username" autoComplete="username" required
-                value={form.username} onChange={e => setForm({ ...form, username: e.target.value })}
-            />
-            <input
-                type="password"
-                className="w-full px-4 py-3 bg-dark-bg/50 border border-dark-border rounded-lg outline-none focus:ring-2 focus:ring-neon-blue"
-                placeholder="Password" autoComplete="current-password" required
-                value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
-            />
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            <button
-                type="submit" disabled={submitting}
-                className="w-full py-3 rounded-lg font-semibold bg-neon-blue/10 text-neon-blue border border-neon-blue/50 hover:bg-neon-blue hover:text-black transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-                {submitting && <Loader2 className="w-4 h-4 animate-spin" />} Log in
-            </button>
-        </form>
-    );
-}
-
 function StatusBadge({ status }: { status: ImportJob['status'] }) {
     const styles = {
         queued: 'bg-gray-500/10 text-gray-300 border-gray-500/30',
@@ -159,7 +48,7 @@ function StatusBadge({ status }: { status: ImportJob['status'] }) {
     );
 }
 
-function ImportDashboard({ onSessionExpired }: { onSessionExpired: () => void }) {
+export default function ImportPage({ onSessionExpired }: { onSessionExpired: () => void }) {
     const [jobs, setJobs] = useState<ImportJob[]>([]);
     const [busy, setBusy] = useState(false);
     const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
@@ -175,7 +64,7 @@ function ImportDashboard({ onSessionExpired }: { onSessionExpired: () => void })
     const inputRef = useRef<HTMLInputElement>(null);
 
     const loadJobs = useCallback(async () => {
-        const res = await fetch(`${API}/imports`);
+        const res = await fetch(`${ADMIN_API}/imports`);
         if (res.status === 401) return onSessionExpired();
         if (!res.ok) return;
         const data = await res.json();
@@ -210,7 +99,7 @@ function ImportDashboard({ onSessionExpired }: { onSessionExpired: () => void })
     // Keep the open log in step with the job list.
     useEffect(() => {
         if (selectedJobId === null) return;
-        fetch(`${API}/imports/${selectedJobId}`)
+        fetch(`${ADMIN_API}/imports/${selectedJobId}`)
             .then(res => (res.ok ? res.json() : null))
             .then(job => job && setSelectedJob(job))
             .catch(() => undefined);
@@ -237,7 +126,7 @@ function ImportDashboard({ onSessionExpired }: { onSessionExpired: () => void })
 
         // XMLHttpRequest rather than fetch, for upload progress.
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${API}/imports`);
+        xhr.open('POST', `${ADMIN_API}/imports`);
         xhr.upload.onprogress = e => {
             if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
         };
