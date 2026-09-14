@@ -241,7 +241,14 @@ def get_company_details(
     try:
         office_addr_query = text("SELECT * FROM companies_registered_office_address WHERE NZBN = :nzbn")
         office_addr_result = db.execute(office_addr_query, {"nzbn": nzbn}).fetchall()
-        addresses["office"] = [upper_keys(row) for row in office_addr_result]
+        addresses["office"] = []
+        for row in office_addr_result:
+            address = upper_keys(row)
+            # The 2026 bulk data renamed REGISTERED_OFFICE_ADDRESS_ADDRESS_N to REGISTERED_OFFICE_ADDRESS_N.
+            # The frontend reads the older names, so provide them for either release.
+            for n in range(1, 5):
+                address.setdefault(f"REGISTERED_OFFICE_ADDRESS_ADDRESS_{n}", address.get(f"REGISTERED_OFFICE_ADDRESS_{n}"))
+            addresses["office"].append(address)
     except Exception:
         addresses["office"] = []
 

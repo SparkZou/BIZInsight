@@ -43,11 +43,19 @@ LEFT JOIN LATERAL (
     ORDER BY start_date DESC NULLS LAST LIMIT 1
 ) svc ON true
 LEFT JOIN LATERAL (
-    SELECT concat_ws(', ', nullif(registered_office_address_address_1, ''), nullif(registered_office_address_address_2, ''),
-                     nullif(registered_office_address_address_3, ''), nullif(registered_office_address_postcode, '')) AS address
-    FROM companies_registered_office_address r
-    WHERE r.nzbn = c.nzbn
-    ORDER BY start_date DESC NULLS LAST LIMIT 1
+    -- Read through jsonb: the 2026 bulk data renamed registered_office_address_address_N to
+    -- registered_office_address_N, and either release may be the one imported.
+    SELECT concat_ws(', ',
+               nullif(coalesce(j->>'registered_office_address_1', j->>'registered_office_address_address_1'), ''),
+               nullif(coalesce(j->>'registered_office_address_2', j->>'registered_office_address_address_2'), ''),
+               nullif(coalesce(j->>'registered_office_address_3', j->>'registered_office_address_address_3'), ''),
+               nullif(j->>'registered_office_address_postcode', '')) AS address
+    FROM (
+        SELECT to_jsonb(r) AS j
+        FROM companies_registered_office_address r
+        WHERE r.nzbn = c.nzbn
+        ORDER BY r.start_date DESC NULLS LAST LIMIT 1
+    ) latest
 ) ro ON true
 LEFT JOIN LATERAL (
     SELECT count(*) AS n,
