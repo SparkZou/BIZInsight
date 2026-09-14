@@ -8,7 +8,9 @@
 
 **Real-time access to 1.7M+ New Zealand company data through a modern BI platform**
 
-[Features](#-features) • [Tech Stack](#️-tech-stack) • [Quick Start](#-quick-start) • [Deployment](#-deployment-guide) • [API Docs](#-api-documentation)
+[Features](#-features) • [Tech Stack](#️-tech-stack) • [Quick Start](#-quick-start) • [Deployment](#-deployment) • [API Docs](#-api-documentation)
+
+**Live:** https://companies.aicloud.co.nz
 
 </div>
 
@@ -49,26 +51,25 @@ NZCompanies is a comprehensive business intelligence platform providing real-tim
   - Recent registrations table
 
 - **Search Page**:
-  - Multi-dimensional search (company name, NZBN, address, director name)
+  - Search by company name, NZBN or director name
   - Real-time search results
-  - Pagination support
 
 - **Company Details**:
   - Complete company information (registration date, status, address, website)
   - Directors list with appointment dates
-  - Shareholder structure with ownership percentages
+  - Shareholder structure
   - Map location (Leaflet integration)
 
 ### 🚀 Backend API
 
-- **RESTful API**: Built with FastAPI for high concurrency
-- **Database**: MySQL storing 1.7M+ company records
-- **CORS Support**: Cross-origin access enabled
+- **RESTful API**: Built with FastAPI
+- **Database**: PostgreSQL with the Companies Office bulk data (~17.6M rows across 18 datasets)
 - **Endpoints**:
   - `GET /api/v1/dashboard` - Dashboard data
   - `GET /api/v1/companies/search` - Search companies
   - `GET /api/v1/companies/{nzbn}` - Company details
   - `POST /api/v1/contact` - Contact form submission
+  - `GET /api/stats/datasets` - Record counts per dataset
 
 ---
 
@@ -86,16 +87,14 @@ NZCompanies is a comprehensive business intelligence platform providing real-tim
 
 ### Backend
 - **Framework**: FastAPI (Python)
-- **Database**: MySQL 8
-- **ORM**: SQLAlchemy
+- **Database**: PostgreSQL 16 (`pg_trgm` trigram indexes for search)
+- **ORM / Driver**: SQLAlchemy + psycopg 3
 - **Migrations**: Alembic
-- **CORS**: FastAPI CORS Middleware
 
 ### DevOps
-- **Version Control**: Git
-- **Package Management**: npm (frontend) + pip (backend)
-- **Build Tools**: Vite (frontend)
-- **Dev Server**: Uvicorn (backend)
+- **Containers**: Docker Compose (nginx frontend, FastAPI backend, PostgreSQL)
+- **Reverse proxy / HTTPS**: shared Caddy on the server (automatic Let's Encrypt)
+- **CI/CD**: GitHub Actions deploys `master`
 
 ---
 
@@ -105,24 +104,21 @@ NZCompanies is a comprehensive business intelligence platform providing real-tim
 
 - **Node.js**: >= 18.x
 - **Python**: >= 3.9
-- **MySQL**: >= 8.0
+- **PostgreSQL**: >= 14
 - **Git**: Latest version
 
 ### 1. Clone Repository
 
 ```bash
-git clone <repository-url>
-cd NZCompanies
+git clone https://github.com/SparkZou/BIZInsight.git
+cd BIZInsight
 ```
 
 ### 2. Database Setup
 
 ```sql
--- Create database
-CREATE DATABASE nzcompanies CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Import data (assuming you have CSV files)
--- Use import scripts in backend/scripts
+CREATE USER bizinsight WITH PASSWORD 'change-me';
+CREATE DATABASE nzcompanies OWNER bizinsight;
 ```
 
 ### 3. Backend Setup
@@ -130,43 +126,37 @@ CREATE DATABASE nzcompanies CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```bash
 cd backend
 
-# Create virtual environment
+# Create and activate a virtual environment
 python -m venv venv
-
-# Activate virtual environment
 # Windows:
 venv\Scripts\activate
 # macOS/Linux:
 source venv/bin/activate
 
-# Install dependencies
 pip install -r requirements.txt
 
-# Configure environment variables (optional)
-# Edit backend/app/core/config.py to modify database connection
+# Configure the database connection
+cp .env.example .env    # then edit DATABASE_URL
 
-# Run database migrations (if needed)
+# Create app-owned tables, then import the Companies Office bulk data CSVs
 alembic upgrade head
+python scripts/data_import/import_bulk_data.py /path/to/unzipped/csvs
 
 # Start backend server
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8001
 ```
 
-Backend will run at `http://localhost:8001`
+See [backend/README.md](backend/README.md) for details on the data import.
 
 ### 4. Frontend Setup
 
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-Frontend will run at `http://localhost:5173`
+The Vite dev server proxies `/api` to the backend on `http://127.0.0.1:8001`.
 
 ### 5. Access Application
 
@@ -176,86 +166,27 @@ Frontend will run at `http://localhost:5173`
 
 ---
 
-## 📦 Deployment Guide
+## 📦 Deployment
 
-### Production Deployment
+Production runs at **https://companies.aicloud.co.nz** on a server where every app is a Docker Compose project in `/opt/webApp`, reached by a shared Caddy over the `shared-proxy-network`.
 
-#### Backend Deployment
+| Piece | File |
+|---|---|
+| Containers: `bizinsight-frontend` (nginx), `bizinsight-backend` (FastAPI), `bizinsight-db` (PostgreSQL 16) | [docker-compose.yml](docker-compose.yml) |
+| Backend image (runs `alembic upgrade head`, then uvicorn) | [backend/Dockerfile](backend/Dockerfile) |
+| nginx config for the SPA container | [deploy/nginx/frontend.conf](deploy/nginx/frontend.conf) |
+| Caddy site block (HTTPS, `/api/*` → backend, rest → frontend) | [deploy/caddy/companies.aicloud.co.nz.caddy](deploy/caddy/companies.aicloud.co.nz.caddy) |
+| Server-side deploy script | [deploy/deploy.sh](deploy/deploy.sh) |
+| CI/CD: build frontend, upload it, run deploy.sh | [.github/workflows/deploy.yml](.github/workflows/deploy.yml) |
 
-```bash
-cd backend
+Every push to `master` deploys automatically. The workflow needs the repository secrets `DEPLOY_HOST`, `DEPLOY_USER` and `DEPLOY_SSH_KEY`. The database password lives only in `/opt/webApp/bizinsight/.env` on the server.
 
-# Install production dependencies
-pip install -r requirements.txt
-
-# Run with Gunicorn (recommended)
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
-
-# Or use Uvicorn
-uvicorn app.main:app --host 0.0.0.0 --port 8001 --workers 4
-```
-
-**Environment Configuration**:
-- Modify `DATABASE_URL` in `backend/app/core/config.py`
-- Use `.env` file for sensitive information
-
-#### Frontend Deployment
+Refresh the Companies Office data (monthly) on the server:
 
 ```bash
-cd frontend
-
-# Build production version
-npm run build
-
-# dist directory will contain static files
-# Deploy to Nginx, Apache, Vercel, Netlify, etc.
-```
-
-**Nginx Configuration Example**:
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-    root /path/to/NZCompanies/frontend/dist;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location /api {
-        proxy_pass http://localhost:8001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-### Docker Deployment (Optional)
-
-```dockerfile
-# Backend Dockerfile example
-FROM python:3.9-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
-```
-
-```dockerfile
-# Frontend Dockerfile example
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-EXPOSE 80
+cd /opt/webApp/bizinsight
+python3 -m zipfile -e bulk-data.zip data/
+docker compose exec bizinsight-backend python scripts/data_import/import_bulk_data.py /data
 ```
 
 ---
@@ -272,10 +203,10 @@ GET /api/v1/dashboard
 **Response Example**:
 ```json
 {
-  "totalCompanies": 1700000,
+  "totalCompanies": 1723065,
   "companiesByType": [
-    {"name": "Limited Company", "value": 850000},
-    {"name": "Sole Trader", "value": 450000}
+    {"name": "LTD", "value": 1713945},
+    {"name": "ASIC", "value": 4401}
   ],
   "registrationsPerYear": [
     {"year": 2023, "count": 85000},
@@ -287,13 +218,12 @@ GET /api/v1/dashboard
 
 #### 2. Search Companies
 ```http
-GET /api/v1/companies/search?query=example&limit=20&offset=0
+GET /api/v1/companies/search?q=example&limit=20
 ```
 
 **Query Parameters**:
-- `query`: Search keyword (company name, NZBN, address, director)
+- `q`: Search keyword (company name, NZBN or director name, at least 2 characters)
 - `limit`: Number of results (default 20)
-- `offset`: Pagination offset
 
 #### 3. Get Company Details
 ```http
@@ -303,12 +233,11 @@ GET /api/v1/companies/{nzbn}
 **Response Example**:
 ```json
 {
-  "NZBN": "9429030096851",
-  "ENTITY_NAME": "Example Ltd",
-  "REGISTRATION_DATE": "2020-01-15",
+  "NZBN": "9429037441074",
+  "ENTITY_NAME": "AMRITSAR INVESTMENTS LIMITED",
+  "REGISTRATION_DATE": "1999-11-03",
   "ENTITY_STATUS": "Registered",
-  "PHYSICAL_ADDRESS": "123 Queen St, Auckland",
-  "WEBSITE": "https://example.com",
+  "addresses": {"service": [...], "public": [...], "office": [...]},
   "directors": [...],
   "shareholders": [...]
 }
@@ -321,29 +250,32 @@ Full API documentation: `http://localhost:8001/docs`
 ## 🗂️ Project Structure
 
 ```
-NZCompanies/
-├── backend/                 # Backend code
+BIZInsight/
+├── backend/                 # FastAPI backend
 │   ├── app/
 │   │   ├── api/            # API routes
-│   │   ├── core/           # Core configuration
-│   │   ├── db/             # Database connection
+│   │   ├── core/           # Settings
+│   │   ├── db/             # Database session
 │   │   ├── models/         # SQLAlchemy models
 │   │   └── main.py         # FastAPI app entry
-│   ├── scripts/            # Data import scripts
+│   ├── scripts/            # Data import (bulk CSV -> PostgreSQL)
 │   ├── alembic/            # Database migrations
-│   └── requirements.txt    # Python dependencies
+│   ├── Dockerfile
+│   └── requirements.txt
 │
-├── frontend/               # Frontend code
+├── frontend/               # React + Vite frontend
 │   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── pages/          # Page components
-│   │   ├── types/          # TypeScript types
-│   │   ├── App.tsx         # App entry
-│   │   └── main.tsx        # React entry
-│   ├── public/             # Static assets
-│   └── package.json        # npm dependencies
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── types/
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   └── package.json
 │
-└── README.md               # Project documentation
+├── deploy/                 # Caddy site block, nginx config, deploy script
+├── .github/workflows/      # GitHub Actions deploy
+├── docker-compose.yml      # Production stack
+└── README.md
 ```
 
 ---
@@ -351,12 +283,11 @@ NZCompanies/
 ## 🔒 Security Recommendations
 
 1. **Database Security**:
-   - Never hardcode database passwords in code
-   - Use environment variables or secret management services
-   - Restrict database access by IP
+   - Never hardcode database passwords in code; keep them in `.env`
+   - Keep PostgreSQL off the public internet (the compose file binds it to 127.0.0.1)
 
 2. **API Security**:
-   - Disable `allow_origins=["*"]` in production CORS settings
+   - Restrict `BACKEND_CORS_ORIGINS` in production
    - Implement API rate limiting
    - Add JWT authentication (if needed)
 
@@ -382,7 +313,7 @@ Issues and Pull Requests are welcome!
 ## 📧 Contact
 
 - **Email**: Sparksqlmvp@gmail.com
-- **Website**: [NZCompanies Platform](http://localhost:5173)
+- **Website**: [NZCompanies Platform](https://companies.aicloud.co.nz)
 
 ---
 
@@ -390,6 +321,6 @@ Issues and Pull Requests are welcome!
 
 **© 2025 NZCompanies. All systems nominal.**
 
-Made with ❤️ using React, FastAPI, and MySQL
+Made with ❤️ using React, FastAPI, and PostgreSQL
 
 </div>

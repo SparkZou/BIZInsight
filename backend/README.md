@@ -140,7 +140,7 @@ Import or refresh the bulk data on the server:
 
 ```bash
 cd /opt/webApp/bizinsight
-unzip -o bulk-data.zip -d data/        # CSVs must end up directly in ./data
+python3 -m zipfile -e bulk-data.zip data/   # the CSVs must end up directly in ./data
 docker compose exec bizinsight-backend python scripts/data_import/import_bulk_data.py /data
 ```
 
