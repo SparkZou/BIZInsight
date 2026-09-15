@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-    AlertTriangle, Briefcase, Building2, ExternalLink, Globe, MapPin, PieChart, Users
+    AlertTriangle, Briefcase, Building2, Contact, ExternalLink, Globe, MapPin, PieChart, Users
 } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { ADMIN_API } from './api';
 
 // The public GET /api/v1/companies/{nzbn} payload: each related table's rows keep the
 // upper-case column names of the Companies Office CSV files.
@@ -70,6 +71,23 @@ function Field({ label, children }: { label: string; children?: ReactNode }) {
 
 const Empty = ({ children }: { children: ReactNode }) => <p className="text-sm text-gray-500">{children}</p>;
 
+function ValueList({ label, values, link }: { label: string; values?: string[]; link?: 'email' | 'web' }) {
+    return (
+        <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{label}</p>
+            {values && values.length > 0 ? values.map(value => (
+                <p key={value} className="text-sm text-white break-words">
+                    {link === 'email' ? (
+                        <a href={`mailto:${value}`} className="text-neon-blue hover:underline">{value}</a>
+                    ) : link === 'web' ? (
+                        <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-neon-blue hover:underline">{value}</a>
+                    ) : value}
+                </p>
+            )) : <p className="text-sm text-gray-600">-</p>}
+        </div>
+    );
+}
+
 function AddressCard({ label, careOf, lines, start, registered }: {
     label: string; careOf?: string | null; lines: unknown[]; start?: string | null; registered?: string | null;
 }) {
@@ -88,6 +106,8 @@ function AddressCard({ label, careOf, lines, start, registered }: {
 export default function CompanyDetail({ nzbn }: { nzbn: string }) {
     const [company, setCompany] = useState<Row | null>(null);
     const [error, setError] = useState('');
+    // NZBN contact details fetched by the admin job: undefined while loading, null if not fetched.
+    const [contact, setContact] = useState<Row | null | undefined>(undefined);
 
     useEffect(() => {
         setCompany(null);
@@ -96,6 +116,14 @@ export default function CompanyDetail({ nzbn }: { nzbn: string }) {
             .then(res => (res.ok ? res.json() : Promise.reject(new Error(res.status === 404 ? 'Company not found' : `HTTP ${res.status}`))))
             .then(setCompany)
             .catch(e => setError(e.message));
+    }, [nzbn]);
+
+    useEffect(() => {
+        setContact(undefined);
+        fetch(`${ADMIN_API}/enrichment/companies/${nzbn}`)
+            .then(res => (res.ok ? res.json() : null))
+            .then(setContact)
+            .catch(() => setContact(null));
     }, [nzbn]);
 
     if (error) return <p className="p-8 text-red-400">{error}</p>;
@@ -110,6 +138,7 @@ export default function CompanyDetail({ nzbn }: { nzbn: string }) {
     const websites: Row[] = (company.websites || []).filter((row: Row) => row.WEBSITE && row.WEBSITE !== 'No website');
     const tradingAreas: Row[] = company.trading_areas || [];
     const insolvency: Row[] = company.insolvency || [];
+    const contactDetails: Row = contact?.details || {};
     const maoriFactors = special.maori_business
         ? Object.entries(special.maori_business)
             .filter(([key, value]) => /^IDENTIFYING_FACTOR(_\d+)?$/.test(key) && value)
@@ -151,6 +180,33 @@ export default function CompanyDetail({ nzbn }: { nzbn: string }) {
 
             {/* One column in a narrow panel; two columns when the panel is wide on desktop screens. */}
             <div className="grid gap-5 xl:grid-cols-2 items-start">
+                <Section title="Contact details (NZBN)" icon={Contact} className="xl:col-span-2">
+                    {contact === undefined ? <Empty>Loading...</Empty> : contact === null ? (
+                        <Empty>Not fetched yet. Start it from the Contact details panel on the New companies page.</Empty>
+                    ) : contact.error ? (
+                        <Empty>The NZBN page couldn't be read on {new Date(contact.fetched_at).toLocaleString()}: {contact.error}</Empty>
+                    ) : (
+                        <>
+                            <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                                <ValueList label="Phone numbers" values={contactDetails.phones} />
+                                <ValueList label="Email addresses" values={contactDetails.emails} link="email" />
+                                <ValueList label="Websites" values={contactDetails.websites} link="web" />
+                                <ValueList label="Trading names" values={contactDetails.trading_names} />
+                                <ValueList label="Office address" values={contactDetails.office_addresses} />
+                                <ValueList label="Postal address" values={contactDetails.postal_addresses} />
+                                <ValueList label="Delivery address" values={contactDetails.delivery_addresses} />
+                                <ValueList label="Invoice address" values={contactDetails.invoice_addresses} />
+                                <ValueList label="Trading areas" values={contactDetails.trading_areas} />
+                                <ValueList label="GST number" values={contactDetails.gst_numbers} />
+                                <ValueList label="ABN" values={contactDetails.abn_numbers} />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-4">
+                                From the NZBN register (Companies Office website), fetched {new Date(contact.fetched_at).toLocaleString()}.
+                            </p>
+                        </>
+                    )}
+                </Section>
+
                 <Section title="Company" icon={Building2}>
                     <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         <Field label="Company number">{company.COMPANY_IDENTIFIER ?? company.INCORPORATION_NUMBER}</Field>

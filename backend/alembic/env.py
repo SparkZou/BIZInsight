@@ -12,6 +12,7 @@ sys.path.append(os.getcwd())
 from app.core.config import settings
 from app.models.company import Base
 from app.models import contact  # Register model
+from app.models import enrichment  # Register models
 from app.models import import_job  # Register model
 from app.models import retirement_village # Register model
 
@@ -33,7 +34,7 @@ target_metadata = Base.metadata
 
 # Migrations only manage tables the app owns. The Companies Office data tables are
 # (re)created by app/services/bulk_import.py.
-MANAGED_TABLES = {"contact_messages", "import_jobs"}
+MANAGED_TABLES = {"contact_messages", "import_jobs", "company_contact_details", "enrichment_jobs"}
 
 
 def include_object(object, name, type_, reflected, compare_to):

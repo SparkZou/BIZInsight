@@ -19,15 +19,18 @@ from app.api.api_v1.endpoints.admin import require_admin
 router = APIRouter()
 
 # One row per company with the related records the list shows. The lateral subqueries only run
-# for the rows returned, so a page of 50 takes ~0.1s on the full dataset.
+# for the rows returned, so a page of 50 takes ~0.1s on the full dataset. Contact details come from
+# company_contact_details, filled by the admin contact details job.
 COMPANY_ROWS_SQL = """
 SELECT c.nzbn, c.entity_name, c.registration_date, c.entity_type, c.entity_status,
        bic.code AS industry_code, bic.description AS industry,
        svc.city, svc.address AS address_for_service, ro.address AS registered_office,
        coalesce(dir.n, 0) AS director_count, dir.names AS directors,
        coalesce(sh.n, 0) AS shareholder_count,
-       gst.gst_number, web.website, tn.trading_name
+       gst.gst_number, web.website, tn.trading_name,
+       ccd.phones, ccd.emails, ccd.websites AS nzbn_websites, ccd.fetched_at AS contact_fetched_at
 FROM companies_core_data c
+LEFT JOIN company_contact_details ccd ON ccd.nzbn = c.nzbn AND ccd.error IS NULL
 LEFT JOIN LATERAL (
     SELECT industry_classification_code AS code, industry_classification_description AS description
     FROM companies_business_industry_classification b
@@ -97,6 +100,9 @@ EXPORT_COLUMNS = [
     ("gst_number", "GST number"),
     ("website", "Website"),
     ("trading_name", "Trading name"),
+    ("phones", "Phone numbers (NZBN)"),
+    ("emails", "Email addresses (NZBN)"),
+    ("nzbn_websites", "Websites (NZBN)"),
 ]
 
 

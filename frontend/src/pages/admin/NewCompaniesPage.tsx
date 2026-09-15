@@ -8,6 +8,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { ADMIN_API } from './api';
 import { StatusPill } from './CompanyDetail';
 import CompanyDrawer from './CompanyDrawer';
+import EnrichmentPanel from './EnrichmentPanel';
 
 const API = `${ADMIN_API}/new-companies`;
 const PAGE_SIZE = 50;
@@ -48,6 +49,10 @@ interface CompanyRow {
     gst_number: string | null;
     website: string | null;
     trading_name: string | null;
+    phones: string | null;
+    emails: string | null;
+    nzbn_websites: string | null;
+    contact_fetched_at: string | null;
 }
 
 const monthLabel = (month: string) =>
@@ -100,6 +105,7 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedNzbn, setSelectedNzbn] = useState<string | null>(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const getJson = useCallback(async (url: string) => {
         const res = await fetch(url);
@@ -146,7 +152,9 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
             })
             .catch(e => setError(e.message))
             .finally(() => setLoading(false));
-    }, [getJson, month, filterQuery, page]);
+    }, [getJson, month, filterQuery, page, refreshKey]);
+
+    const refreshList = useCallback(() => setRefreshKey(key => key + 1), []);
 
     const applySearch = (e: FormEvent) => {
         e.preventDefault();
@@ -212,6 +220,10 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                 </>
             )}
 
+            {month && (
+                <EnrichmentPanel month={month} monthName={monthLabel(month)} onSessionExpired={onSessionExpired} onFinished={refreshList} />
+            )}
+
             <section className="glass-panel rounded-2xl p-5 space-y-4">
                 <div className="flex flex-col sm:flex-row gap-3">
                     <form onSubmit={applySearch} className="flex-1 flex gap-2">
@@ -260,46 +272,58 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                                     <th className="py-2 pr-4 font-medium hidden 2xl:table-cell">Registered office</th>
                                     <th className="py-2 pr-4 font-medium">Directors</th>
                                     <th className="py-2 pr-4 font-medium text-right">Shareholders</th>
+                                    <th className="py-2 pr-4 font-medium">Contact</th>
                                     <th className="py-2 pr-4 font-medium hidden 2xl:table-cell">GST</th>
                                     <th className="py-2 pr-4 font-medium hidden 2xl:table-cell">Website</th>
                                     <th className="py-2 font-medium">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-dark-border">
-                                {companies.map(company => (
-                                    <tr key={company.nzbn} onClick={() => setSelectedNzbn(company.nzbn)} className="cursor-pointer hover:bg-white/5 align-top">
-                                        <td className="py-3 pr-4 whitespace-nowrap text-gray-400">{company.registration_date}</td>
-                                        <td className="py-3 pr-4 min-w-[14rem]">
-                                            <p className="font-medium text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-neon-blue shrink-0" />{company.entity_name}</p>
-                                            <p className="text-xs text-gray-500 font-mono mt-0.5">{company.nzbn}</p>
-                                            {company.trading_name && <p className="text-xs text-gray-400 mt-0.5">Trading as {company.trading_name}</p>}
-                                        </td>
-                                        <td className="py-3 pr-4 text-gray-300 whitespace-nowrap hidden xl:table-cell">{company.entity_type || <Blank />}</td>
-                                        <td className="py-3 pr-4 text-gray-300 max-w-[16rem] 2xl:max-w-[22rem]">{company.industry || <Blank />}</td>
-                                        <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">{company.city || <Blank />}</td>
-                                        <td className="py-3 pr-4 text-gray-300 max-w-[20rem] hidden 2xl:table-cell">{company.registered_office || <Blank />}</td>
-                                        <td className="py-3 pr-4 text-gray-300 max-w-[16rem] 2xl:max-w-[22rem]">
-                                            <p className="truncate" title={company.directors ?? ''}>{company.directors || <Blank />}</p>
-                                            {company.director_count > 1 && <p className="text-xs text-gray-500">{company.director_count} directors</p>}
-                                        </td>
-                                        <td className="py-3 pr-4 text-right font-mono">{company.shareholder_count}</td>
-                                        <td className="py-3 pr-4 font-mono text-gray-300 whitespace-nowrap hidden 2xl:table-cell">{company.gst_number || <Blank />}</td>
-                                        <td className="py-3 pr-4 max-w-[14rem] hidden 2xl:table-cell">
-                                            {company.website ? (
-                                                <a
-                                                    href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
-                                                    target="_blank" rel="noopener noreferrer"
-                                                    onClick={e => e.stopPropagation()}
-                                                    className="block truncate text-neon-blue hover:underline"
-                                                    title={company.website}
-                                                >
-                                                    {company.website.replace(/^https?:\/\//, '')}
-                                                </a>
-                                            ) : <Blank />}
-                                        </td>
-                                        <td className="py-3"><StatusPill status={company.entity_status} /></td>
-                                    </tr>
-                                ))}
+                                {companies.map(company => {
+                                    const website = company.website || company.nzbn_websites?.split('; ')[0] || null;
+                                    return (
+                                        <tr key={company.nzbn} onClick={() => setSelectedNzbn(company.nzbn)} className="cursor-pointer hover:bg-white/5 align-top">
+                                            <td className="py-3 pr-4 whitespace-nowrap text-gray-400">{company.registration_date}</td>
+                                            <td className="py-3 pr-4 min-w-[14rem]">
+                                                <p className="font-medium text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-neon-blue shrink-0" />{company.entity_name}</p>
+                                                <p className="text-xs text-gray-500 font-mono mt-0.5">{company.nzbn}</p>
+                                                {company.trading_name && <p className="text-xs text-gray-400 mt-0.5">Trading as {company.trading_name}</p>}
+                                            </td>
+                                            <td className="py-3 pr-4 text-gray-300 whitespace-nowrap hidden xl:table-cell">{company.entity_type || <Blank />}</td>
+                                            <td className="py-3 pr-4 text-gray-300 max-w-[16rem] 2xl:max-w-[22rem]">{company.industry || <Blank />}</td>
+                                            <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">{company.city || <Blank />}</td>
+                                            <td className="py-3 pr-4 text-gray-300 max-w-[20rem] hidden 2xl:table-cell">{company.registered_office || <Blank />}</td>
+                                            <td className="py-3 pr-4 text-gray-300 max-w-[16rem] 2xl:max-w-[22rem]">
+                                                <p className="truncate" title={company.directors ?? ''}>{company.directors || <Blank />}</p>
+                                                {company.director_count > 1 && <p className="text-xs text-gray-500">{company.director_count} directors</p>}
+                                            </td>
+                                            <td className="py-3 pr-4 text-right font-mono">{company.shareholder_count}</td>
+                                            <td className="py-3 pr-4 max-w-[16rem]">
+                                                {!company.contact_fetched_at ? <Blank /> : company.phones || company.emails ? (
+                                                    <>
+                                                        {company.phones && <p className="truncate text-gray-300 font-mono" title={company.phones}>{company.phones}</p>}
+                                                        {company.emails && <p className="truncate text-neon-blue" title={company.emails}>{company.emails}</p>}
+                                                    </>
+                                                ) : <span className="text-xs text-gray-500">None listed</span>}
+                                            </td>
+                                            <td className="py-3 pr-4 font-mono text-gray-300 whitespace-nowrap hidden 2xl:table-cell">{company.gst_number || <Blank />}</td>
+                                            <td className="py-3 pr-4 max-w-[14rem] hidden 2xl:table-cell">
+                                                {website ? (
+                                                    <a
+                                                        href={website.startsWith('http') ? website : `https://${website}`}
+                                                        target="_blank" rel="noopener noreferrer"
+                                                        onClick={e => e.stopPropagation()}
+                                                        className="block truncate text-neon-blue hover:underline"
+                                                        title={website}
+                                                    >
+                                                        {website.replace(/^https?:\/\//, '')}
+                                                    </a>
+                                                ) : <Blank />}
+                                            </td>
+                                            <td className="py-3"><StatusPill status={company.entity_status} /></td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

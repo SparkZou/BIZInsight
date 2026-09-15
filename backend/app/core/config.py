@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     # Where bulk data uploaded through /admin is stored.
     DATA_DIR: str = "/data"
 
+    # Contact details job: pause between requests to the Companies Office website, and how the
+    # requests identify themselves.
+    CO_WEB_DELAY_SECONDS: float = 3.0
+    CO_WEB_USER_AGENT: str = "BIZInsight data enrichment (+https://companies.aicloud.co.nz)"
+
     # Supabase
     SUPABASE_URL: Optional[str] = None
     SUPABASE_KEY: Optional[str] = None

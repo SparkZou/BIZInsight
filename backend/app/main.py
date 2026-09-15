@@ -3,15 +3,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.api_v1.endpoints import admin, admin_companies, admin_search, dashboard, contact, companies
+from app.api.api_v1.endpoints import (
+    admin, admin_companies, admin_enrichment, admin_search, dashboard, contact, companies,
+)
 from app.api.endpoints import stats
-from app.services import import_jobs
+from app.services import enrichment_jobs, import_jobs
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Admin imports run in-process, so one that was running when the API stopped has failed.
+    # Admin imports and contact details jobs run in-process, so one that was running when the API
+    # stopped can't still be running.
     import_jobs.mark_interrupted_jobs()
+    enrichment_jobs.mark_interrupted_jobs()
     yield
 
 
@@ -33,6 +37,7 @@ app.include_router(companies.router, prefix=f"{settings.API_V1_STR}/companies", 
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
 app.include_router(admin_companies.router, prefix=f"{settings.API_V1_STR}/admin/new-companies", tags=["admin"])
 app.include_router(admin_search.router, prefix=f"{settings.API_V1_STR}/admin/search", tags=["admin"])
+app.include_router(admin_enrichment.router, prefix=f"{settings.API_V1_STR}/admin/enrichment", tags=["admin"])
 
 # Stats routes
 app.include_router(stats.router, prefix="/api/stats", tags=["statistics"])
