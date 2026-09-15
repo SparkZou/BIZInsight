@@ -44,9 +44,11 @@ const joinParts = (...parts: unknown[]) =>
 const joinName = (...parts: unknown[]) =>
     parts.filter(part => part !== null && part !== undefined && String(part).trim() !== '').join(' ');
 
-function Section({ title, icon: Icon, count, children }: { title: string; icon: LucideIcon; count?: number; children: ReactNode }) {
+function Section({ title, icon: Icon, count, className = '', children }: {
+    title: string; icon: LucideIcon; count?: number; className?: string; children: ReactNode;
+}) {
     return (
-        <section className="glass-panel rounded-2xl p-5">
+        <section className={`glass-panel rounded-2xl p-5 ${className}`}>
             <h3 className="flex items-center gap-2 font-semibold mb-4">
                 <Icon className="w-4 h-4 text-neon-blue" /> {title}
                 {count !== undefined && <span className="text-xs font-normal text-gray-500">({count})</span>}
@@ -147,168 +149,171 @@ export default function CompanyDetail({ nzbn }: { nzbn: string }) {
                 </p>
             </div>
 
-            <Section title="Company" icon={Building2}>
-                <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <Field label="Company number">{company.COMPANY_IDENTIFIER ?? company.INCORPORATION_NUMBER}</Field>
-                    <Field label="Type">{company.ENTITY_TYPE}</Field>
-                    <Field label="Status">{company.ENTITY_STATUS}</Field>
-                    <Field label="Registered">{registered}</Field>
-                    <Field label="GST number">
-                        {company.gst ? <span className="inline-flex flex-wrap items-center gap-2">{company.gst.GST_NUMBER} <Since start={company.gst.START_DATE} registered={registered} /></span> : null}
-                    </Field>
-                    <Field label="ABN">{company.abn?.ABN}</Field>
-                    {maoriFactors && <Field label="Māori business">{maoriFactors}</Field>}
-                </dl>
-            </Section>
+            {/* One column in a narrow panel; two columns when the panel is wide on desktop screens. */}
+            <div className="grid gap-5 xl:grid-cols-2 items-start">
+                <Section title="Company" icon={Building2}>
+                    <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <Field label="Company number">{company.COMPANY_IDENTIFIER ?? company.INCORPORATION_NUMBER}</Field>
+                        <Field label="Type">{company.ENTITY_TYPE}</Field>
+                        <Field label="Status">{company.ENTITY_STATUS}</Field>
+                        <Field label="Registered">{registered}</Field>
+                        <Field label="GST number">
+                            {company.gst ? <span className="inline-flex flex-wrap items-center gap-2">{company.gst.GST_NUMBER} <Since start={company.gst.START_DATE} registered={registered} /></span> : null}
+                        </Field>
+                        <Field label="ABN">{company.abn?.ABN}</Field>
+                        {maoriFactors && <Field label="Māori business">{maoriFactors}</Field>}
+                    </dl>
+                </Section>
 
-            <Section title="Industry" icon={Briefcase} count={industries.length}>
-                {industries.length === 0 ? <Empty>No industry code recorded.</Empty> : (
-                    <ul className="space-y-2">
-                        {industries.map((row, index) => (
-                            <li key={index} className="flex flex-wrap items-center gap-2 text-sm">
-                                <span className="font-mono text-neon-purple">{row.INDUSTRY_CLASSIFICATION_CODE}</span>
-                                <span>{row.INDUSTRY_CLASSIFICATION_DESCRIPTION}</span>
-                                <Since start={row.START_DATE} registered={registered} />
-                            </li>
+                <Section title="Industry" icon={Briefcase} count={industries.length}>
+                    {industries.length === 0 ? <Empty>No industry code recorded.</Empty> : (
+                        <ul className="space-y-2">
+                            {industries.map((row, index) => (
+                                <li key={index} className="flex flex-wrap items-center gap-2 text-sm">
+                                    <span className="font-mono text-neon-purple">{row.INDUSTRY_CLASSIFICATION_CODE}</span>
+                                    <span>{row.INDUSTRY_CLASSIFICATION_DESCRIPTION}</span>
+                                    <Since start={row.START_DATE} registered={registered} />
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Section>
+
+                <Section title="Addresses" icon={MapPin} className="xl:col-span-2">
+                    <div className="grid sm:grid-cols-2 2xl:grid-cols-3 gap-3">
+                        {(addresses.office || []).map((a: Row, index: number) => (
+                            <AddressCard
+                                key={`office-${index}`} label="Registered office" careOf={a.REGISTERED_OFFICE_ADDRESS_CARE_OF}
+                                lines={[a.REGISTERED_OFFICE_ADDRESS_ADDRESS_1, a.REGISTERED_OFFICE_ADDRESS_ADDRESS_2, a.REGISTERED_OFFICE_ADDRESS_ADDRESS_3,
+                                    a.REGISTERED_OFFICE_ADDRESS_ADDRESS_4, a.REGISTERED_OFFICE_ADDRESS_POSTCODE, a.REGISTERED_OFFICE_ADDRESS_COUNTRY]}
+                                start={a.START_DATE} registered={registered}
+                            />
                         ))}
-                    </ul>
-                )}
-            </Section>
-
-            <Section title="Addresses" icon={MapPin}>
-                <div className="grid sm:grid-cols-2 gap-3">
-                    {(addresses.office || []).map((a: Row, index: number) => (
-                        <AddressCard
-                            key={`office-${index}`} label="Registered office" careOf={a.REGISTERED_OFFICE_ADDRESS_CARE_OF}
-                            lines={[a.REGISTERED_OFFICE_ADDRESS_ADDRESS_1, a.REGISTERED_OFFICE_ADDRESS_ADDRESS_2, a.REGISTERED_OFFICE_ADDRESS_ADDRESS_3,
-                                a.REGISTERED_OFFICE_ADDRESS_ADDRESS_4, a.REGISTERED_OFFICE_ADDRESS_POSTCODE, a.REGISTERED_OFFICE_ADDRESS_COUNTRY]}
-                            start={a.START_DATE} registered={registered}
-                        />
-                    ))}
-                    {(addresses.service || []).map((a: Row, index: number) => (
-                        <AddressCard
-                            key={`service-${index}`} label="Address for service" careOf={a.ADDRESS_FOR_SERVICE_CARE_OF}
-                            lines={[a.ADDRESS_FOR_SERVICE_1, a.ADDRESS_FOR_SERVICE_2, a.ADDRESS_FOR_SERVICE_3,
-                                a.ADDRESS_FOR_SERVICE_4, a.ADDRESS_FOR_SERVICE_POSTCODE, a.ADDRESS_FOR_SERVICE_COUNTRY]}
-                            start={a.START_DATE} registered={registered}
-                        />
-                    ))}
-                    {(addresses.public || []).map((a: Row, index: number) => (
-                        <AddressCard
-                            key={`public-${index}`} label={`Public ${String(a.TYPE || 'address').toLowerCase()} address`} careOf={a.ADDRESS_CARE_OF}
-                            lines={[a.ADDRESS_1, a.ADDRESS_2, a.ADDRESS_3, a.ADDRESS_4, a.ADDRESS_POSTCODE, a.ADDRESS_COUNTRY]}
-                            start={a.START_DATE} registered={registered}
-                        />
-                    ))}
-                </div>
-            </Section>
-
-            <Section title="Directors" icon={Users} count={directors.length}>
-                {directors.length === 0 ? <Empty>No current directors recorded.</Empty> : (
-                    <ul className="divide-y divide-dark-border">
-                        {directors.map((director, index) => (
-                            <li key={index} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                                <span>
-                                    {joinName(director.FIRST_NAME, director.MIDDLE_NAMES, director.LAST_NAME)}
-                                    {director.ASIC_DIR_YN === 'Y' && (
-                                        <span className="ml-2 text-xs text-gray-500">
-                                            ASIC director{director.ASIC_COMPANY_NAME ? ` - ${director.ASIC_COMPANY_NAME}` : ''}
-                                        </span>
-                                    )}
-                                </span>
-                                <Since start={director.START_DATE} registered={registered} />
-                            </li>
+                        {(addresses.service || []).map((a: Row, index: number) => (
+                            <AddressCard
+                                key={`service-${index}`} label="Address for service" careOf={a.ADDRESS_FOR_SERVICE_CARE_OF}
+                                lines={[a.ADDRESS_FOR_SERVICE_1, a.ADDRESS_FOR_SERVICE_2, a.ADDRESS_FOR_SERVICE_3,
+                                    a.ADDRESS_FOR_SERVICE_4, a.ADDRESS_FOR_SERVICE_POSTCODE, a.ADDRESS_FOR_SERVICE_COUNTRY]}
+                                start={a.START_DATE} registered={registered}
+                            />
                         ))}
-                    </ul>
-                )}
-            </Section>
+                        {(addresses.public || []).map((a: Row, index: number) => (
+                            <AddressCard
+                                key={`public-${index}`} label={`Public ${String(a.TYPE || 'address').toLowerCase()} address`} careOf={a.ADDRESS_CARE_OF}
+                                lines={[a.ADDRESS_1, a.ADDRESS_2, a.ADDRESS_3, a.ADDRESS_4, a.ADDRESS_POSTCODE, a.ADDRESS_COUNTRY]}
+                                start={a.START_DATE} registered={registered}
+                            />
+                        ))}
+                    </div>
+                </Section>
 
-            <Section title="Shareholding" icon={PieChart} count={parcels.length}>
-                {parcels.length === 0 ? <Empty>No shareholders recorded.</Empty> : (
-                    <>
-                        <p className="text-sm text-gray-400 mb-3">
-                            {totalShares.toLocaleString()} shares in {parcels.length} {parcels.length === 1 ? 'parcel' : 'parcels'}
-                        </p>
-                        <div className="space-y-3">
-                            {parcels.map(([key, parcel]) => (
-                                <div key={key} className="rounded-xl border border-dark-border p-4">
-                                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                        <span className="font-mono text-neon-blue">
-                                            {parcel.shares.toLocaleString()} shares
-                                            {totalShares > 0 && ` - ${((parcel.shares / totalShares) * 100).toFixed(1)}%`}
-                                        </span>
-                                        <Since start={parcel.start} registered={registered} />
+                <Section title="Directors" icon={Users} count={directors.length}>
+                    {directors.length === 0 ? <Empty>No current directors recorded.</Empty> : (
+                        <ul className="divide-y divide-dark-border">
+                            {directors.map((director, index) => (
+                                <li key={index} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                                    <span>
+                                        {joinName(director.FIRST_NAME, director.MIDDLE_NAMES, director.LAST_NAME)}
+                                        {director.ASIC_DIR_YN === 'Y' && (
+                                            <span className="ml-2 text-xs text-gray-500">
+                                                ASIC director{director.ASIC_COMPANY_NAME ? ` - ${director.ASIC_COMPANY_NAME}` : ''}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <Since start={director.START_DATE} registered={registered} />
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Section>
+
+                <Section title="Shareholding" icon={PieChart} count={parcels.length}>
+                    {parcels.length === 0 ? <Empty>No shareholders recorded.</Empty> : (
+                        <>
+                            <p className="text-sm text-gray-400 mb-3">
+                                {totalShares.toLocaleString()} shares in {parcels.length} {parcels.length === 1 ? 'parcel' : 'parcels'}
+                            </p>
+                            <div className="space-y-3">
+                                {parcels.map(([key, parcel]) => (
+                                    <div key={key} className="rounded-xl border border-dark-border p-4">
+                                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                            <span className="font-mono text-neon-blue">
+                                                {parcel.shares.toLocaleString()} shares
+                                                {totalShares > 0 && ` - ${((parcel.shares / totalShares) * 100).toFixed(1)}%`}
+                                            </span>
+                                            <Since start={parcel.start} registered={registered} />
+                                        </div>
+                                        <ul className="space-y-2 text-sm">
+                                            {parcel.holders.map((holder, index) => {
+                                                const address = joinParts(holder.SH_ADDRESS_1, holder.SH_ADDRESS_2, holder.SH_ADDRESS_3,
+                                                    holder.SH_ADDRESS_4, holder.SH_ADDRESS_POSTCODE, holder.SH_ADDRESS_COUNTRY);
+                                                return (
+                                                    <li key={index}>
+                                                        <span className="text-white">{holder.SH_NAME}</span>
+                                                        {holder.SH_TYPE && <span className="ml-2 text-xs text-gray-500">{String(holder.SH_TYPE).replace(/^Shareholder\s*/, '')}</span>}
+                                                        {address && <div className="text-xs text-gray-500">{address}</div>}
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                        {parcel.holders.length > 1 && <p className="text-xs text-gray-500 mt-2">Held jointly</p>}
                                     </div>
-                                    <ul className="space-y-2 text-sm">
-                                        {parcel.holders.map((holder, index) => {
-                                            const address = joinParts(holder.SH_ADDRESS_1, holder.SH_ADDRESS_2, holder.SH_ADDRESS_3,
-                                                holder.SH_ADDRESS_4, holder.SH_ADDRESS_POSTCODE, holder.SH_ADDRESS_COUNTRY);
-                                            return (
-                                                <li key={index}>
-                                                    <span className="text-white">{holder.SH_NAME}</span>
-                                                    {holder.SH_TYPE && <span className="ml-2 text-xs text-gray-500">{String(holder.SH_TYPE).replace(/^Shareholder\s*/, '')}</span>}
-                                                    {address && <div className="text-xs text-gray-500">{address}</div>}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                    {parcel.holders.length > 1 && <p className="text-xs text-gray-500 mt-2">Held jointly</p>}
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </Section>
+
+                <Section title="Trading names, areas and websites" icon={Globe} className="xl:col-span-2">
+                    <div className="grid sm:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Trading names</p>
+                            {tradingNames.length === 0 ? <Empty>None</Empty> : tradingNames.map((row, index) => (
+                                <div key={index} className="flex flex-wrap items-center gap-2 mb-1">{row.TRADING_NAME} <Since start={row.START_DATE} registered={registered} /></div>
+                            ))}
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Trading areas</p>
+                            {tradingAreas.length === 0 ? <Empty>None</Empty> : tradingAreas.map((row, index) => (
+                                <div key={index} className="flex flex-wrap items-center gap-2 mb-1">{row.TRADING_AREA} <Since start={row.START_DATE} registered={registered} /></div>
+                            ))}
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Websites</p>
+                            {websites.length === 0 ? <Empty>None</Empty> : websites.map((row, index) => (
+                                <div key={index} className="flex flex-wrap items-center gap-2 mb-1">
+                                    <a
+                                        href={String(row.WEBSITE).startsWith('http') ? row.WEBSITE : `https://${row.WEBSITE}`}
+                                        target="_blank" rel="noopener noreferrer" className="text-neon-blue hover:underline break-all"
+                                    >
+                                        {row.WEBSITE}
+                                    </a>
+                                    <Since start={row.START_DATE} registered={registered} />
                                 </div>
                             ))}
                         </div>
-                    </>
-                )}
-            </Section>
-
-            <Section title="Trading names, areas and websites" icon={Globe}>
-                <div className="grid sm:grid-cols-3 gap-4 text-sm">
-                    <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Trading names</p>
-                        {tradingNames.length === 0 ? <Empty>None</Empty> : tradingNames.map((row, index) => (
-                            <div key={index} className="flex flex-wrap items-center gap-2 mb-1">{row.TRADING_NAME} <Since start={row.START_DATE} registered={registered} /></div>
-                        ))}
                     </div>
-                    <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Trading areas</p>
-                        {tradingAreas.length === 0 ? <Empty>None</Empty> : tradingAreas.map((row, index) => (
-                            <div key={index} className="flex flex-wrap items-center gap-2 mb-1">{row.TRADING_AREA} <Since start={row.START_DATE} registered={registered} /></div>
-                        ))}
-                    </div>
-                    <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Websites</p>
-                        {websites.length === 0 ? <Empty>None</Empty> : websites.map((row, index) => (
-                            <div key={index} className="flex flex-wrap items-center gap-2 mb-1">
-                                <a
-                                    href={String(row.WEBSITE).startsWith('http') ? row.WEBSITE : `https://${row.WEBSITE}`}
-                                    target="_blank" rel="noopener noreferrer" className="text-neon-blue hover:underline break-all"
-                                >
-                                    {row.WEBSITE}
-                                </a>
-                                <Since start={row.START_DATE} registered={registered} />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </Section>
-
-            {insolvency.length > 0 && (
-                <Section title="Insolvency" icon={AlertTriangle} count={insolvency.length}>
-                    <ul className="space-y-3 text-sm">
-                        {insolvency.map((row, index) => (
-                            <li key={index} className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-                                <p className="font-semibold text-red-300">{row.INSOLVENCY_TYPE} <span className="font-normal text-gray-400">- {row.APPOINTMENT_TYPE}</span></p>
-                                <p className="text-gray-300 mt-1">
-                                    {joinName(row.APPOINTEE_FIRST_NAME, row.APPOINTEE_MIDDLE_NAMES, row.APPOINTEE_LAST_NAME)}
-                                    {row.ORGANISATION && <span className="text-gray-500"> ({row.ORGANISATION})</span>}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Appointed {row.APPOINTMENT_DATE || '-'}{row.APPOINTMENT_VACATED_DATE && ` - vacated ${row.APPOINTMENT_VACATED_DATE}`}
-                                </p>
-                            </li>
-                        ))}
-                    </ul>
                 </Section>
-            )}
+
+                {insolvency.length > 0 && (
+                    <Section title="Insolvency" icon={AlertTriangle} count={insolvency.length} className="xl:col-span-2">
+                        <ul className="grid gap-3 text-sm 2xl:grid-cols-2">
+                            {insolvency.map((row, index) => (
+                                <li key={index} className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+                                    <p className="font-semibold text-red-300">{row.INSOLVENCY_TYPE} <span className="font-normal text-gray-400">- {row.APPOINTMENT_TYPE}</span></p>
+                                    <p className="text-gray-300 mt-1">
+                                        {joinName(row.APPOINTEE_FIRST_NAME, row.APPOINTEE_MIDDLE_NAMES, row.APPOINTEE_LAST_NAME)}
+                                        {row.ORGANISATION && <span className="text-gray-500"> ({row.ORGANISATION})</span>}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Appointed {row.APPOINTMENT_DATE || '-'}{row.APPOINTMENT_VACATED_DATE && ` - vacated ${row.APPOINTMENT_VACATED_DATE}`}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                    </Section>
+                )}
+            </div>
         </div>
     );
 }

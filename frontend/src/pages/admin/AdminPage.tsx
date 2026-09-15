@@ -13,10 +13,14 @@ const NAV_ITEMS = [
     { to: '/admin/new-companies', label: 'New companies', icon: Building2, end: false },
 ];
 
+// The admin pages are data-heavy, so they use the full window width on desktop screens and only
+// stop growing on very wide monitors, where lines would get too long to read.
+const PAGE_WIDTH = 'max-w-[2400px] mx-auto px-6 lg:px-10';
+
 function Header({ actions }: { actions?: ReactNode }) {
     return (
         <header className="glass-panel border-b border-dark-border/50">
-            <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div className={`${PAGE_WIDTH} h-16 flex items-center justify-between`}>
                 <Link to="/" className="flex items-center gap-2">
                     <BizInsightLogo className="w-7 h-7" />
                     <span className="font-bold text-lg">Biz<span className="text-neon-blue">Insight</span></span>
@@ -60,8 +64,8 @@ export default function AdminPage() {
                     <LogOut className="w-4 h-4" /> {username}
                 </button>
             } />
-            <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col lg:flex-row gap-8">
-                <aside className="lg:w-56 shrink-0">
+            <div className={`${PAGE_WIDTH} py-8 flex flex-col lg:flex-row gap-8`}>
+                <aside className="lg:w-60 shrink-0">
                     <nav className="glass-panel rounded-2xl p-2 flex lg:flex-col gap-1 lg:sticky lg:top-8">
                         {NAV_ITEMS.map(item => (
                             <NavLink
@@ -69,7 +73,7 @@ export default function AdminPage() {
                                 to={item.to}
                                 end={item.end}
                                 className={({ isActive }) =>
-                                    `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium border transition-colors ${isActive
+                                    `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium border whitespace-nowrap transition-colors ${isActive
                                         ? 'bg-neon-blue/10 text-neon-blue border-neon-blue/30'
                                         : 'text-gray-400 border-transparent hover:text-white hover:bg-white/5'}`
                                 }

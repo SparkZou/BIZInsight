@@ -310,7 +310,7 @@ export default function ImportPage({ onSessionExpired }: { onSessionExpired: () 
             {/* Live data */}
             <section className="glass-panel p-6 rounded-2xl">
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Database className="w-5 h-5 text-neon-purple" /> Live datasets</h2>
-                <div className="grid sm:grid-cols-2 gap-x-8">
+                <div className="grid sm:grid-cols-2 2xl:grid-cols-3 gap-x-8">
                     {datasets.map(dataset => (
                         <div key={dataset.tableName} className="flex justify-between py-2 border-b border-dark-border text-sm">
                             <span className="text-gray-300">{dataset.name}</span>
