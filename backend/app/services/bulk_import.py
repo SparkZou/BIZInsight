@@ -49,15 +49,21 @@ REQUIRED_COLUMNS = {
     "retirement_villages_core_data": {"entity_number"},
 }
 
-# Trigram indexes back the ILIKE '%term%' searches in app/api/api_v1/endpoints/companies.py.
+# Trigram indexes back the ILIKE '%term%' searches in app/api/api_v1/endpoints/companies.py
+# and admin_search.py.
 TRIGRAM_INDEXES = {
     "companies_core_data": ["entity_name", "nzbn"],
     "companies_director": ["first_name", "middle_names", "last_name"],
+    "companies_shareholder": ["sh_name"],
+    "other_incorporated_entities_core_data": ["entity_name"],
+    "charitable_trust_boards_core_data": ["entity_name"],
+    "unincorporated_entities_core_data": ["entity_name"],
 }
 
-# Plain indexes for the dashboard queries; every table with an nzbn column also gets one on it.
+# Plain indexes for the dashboard queries and company number lookups; every table with an nzbn
+# column also gets one on it.
 BTREE_INDEXES = {
-    "companies_core_data": ["registration_date", "entity_type"],
+    "companies_core_data": ["registration_date", "entity_type", "company_identifier"],
 }
 
 # Unparseable dates (e.g. 31/02/2020) become NULL instead of failing the whole file.

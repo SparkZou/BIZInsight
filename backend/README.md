@@ -133,6 +133,7 @@ Once running, access interactive API docs at:
 - `GET /api/v1/admin/new-companies/summary?month=2026-08` - A month's registrations by status, type, industry and city
 - `GET /api/v1/admin/new-companies?month=2026-08&q=&status=&page=1&page_size=50` - A month's new companies with their directors, industry, addresses, shareholder count, GST and website
 - `GET /api/v1/admin/new-companies/export?month=2026-08` - The same list as CSV
+- `GET /api/v1/admin/search?q=&people=true&page=1&page_size=50` - Search every register by name, NZBN or company number, and companies by director or shareholder name
 
 ## ⚙️ Configuration
 

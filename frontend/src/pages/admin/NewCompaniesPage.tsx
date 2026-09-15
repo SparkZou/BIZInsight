@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Briefcase, Building2, ChevronLeft, ChevronRight, Download, MapPin, Search, X
 } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { ADMIN_API } from './api';
-import CompanyDetail, { StatusPill } from './CompanyDetail';
+import { StatusPill } from './CompanyDetail';
+import CompanyDrawer from './CompanyDrawer';
 
 const API = `${ADMIN_API}/new-companies`;
 const PAGE_SIZE = 50;
@@ -146,14 +148,6 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
             .finally(() => setLoading(false));
     }, [getJson, month, filterQuery, page]);
 
-    // Close the detail panel with Escape.
-    useEffect(() => {
-        if (!selectedNzbn) return;
-        const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setSelectedNzbn(null);
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, [selectedNzbn]);
-
     const applySearch = (e: FormEvent) => {
         e.preventDefault();
         setSearch(searchInput.trim());
@@ -226,7 +220,7 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                             <input
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
-                                placeholder="Company name or NZBN"
+                                placeholder={month ? `Company name or NZBN, registered in ${monthLabel(month)}` : 'Company name or NZBN'}
                                 className="w-full pl-9 pr-9 py-2.5 bg-dark-bg/50 border border-dark-border rounded-lg text-sm outline-none focus:ring-2 focus:ring-neon-blue"
                             />
                             {search && (
@@ -246,6 +240,9 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                         {summary?.by_status.map(s => <option key={s.name} value={s.name}>{s.name} ({s.companies.toLocaleString()})</option>)}
                     </select>
                 </div>
+                <p className="text-xs text-gray-500">
+                    This searches the selected month only. To find any company, use <Link to="/admin/search" className="text-neon-blue hover:underline">Company search</Link>.
+                </p>
 
                 {loading ? <LoadingSpinner /> : companies.length === 0 ? (
                     <p className="text-gray-500 text-sm py-8 text-center">No companies match.</p>
@@ -322,17 +319,7 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                 </div>
             </section>
 
-            {selectedNzbn && (
-                <div className="fixed inset-0 z-50 flex justify-end">
-                    <div className="absolute inset-0 bg-black/60" onClick={() => setSelectedNzbn(null)} />
-                    <div className="relative w-full max-w-3xl xl:max-w-5xl 2xl:max-w-7xl h-full overflow-y-auto bg-dark-bg border-l border-dark-border shadow-2xl">
-                        <button onClick={() => setSelectedNzbn(null)} className="absolute top-5 right-5 p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5" aria-label="Close">
-                            <X className="w-5 h-5" />
-                        </button>
-                        <CompanyDetail nzbn={selectedNzbn} />
-                    </div>
-                </div>
-            )}
+            {selectedNzbn && <CompanyDrawer nzbn={selectedNzbn} onClose={() => setSelectedNzbn(null)} />}
         </div>
     );
 }
