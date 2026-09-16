@@ -21,15 +21,22 @@ router = APIRouter()
 # Contact details come from company_contact_details, filled by the admin contact details job.
 CONTACT_JOIN = "LEFT JOIN company_contact_details ccd ON ccd.nzbn = c.nzbn AND ccd.error IS NULL"
 
+# Addresses on the unsubscribe list must never be emailed again, wherever they appear, so anything
+# that answers "can we email this company?" has to ignore them.
+HAS_SENDABLE_EMAIL = (
+    "EXISTS (SELECT 1 FROM unnest(string_to_array(coalesce({alias}.emails, ''), '; ')) AS t(value) "
+    "WHERE t.value <> '' AND NOT EXISTS (SELECT 1 FROM email_suppressions s WHERE s.email = lower(t.value)))"
+)
+
 # "contact" filter values -> condition. Phones and emails only exist in the NZBN data; a website can
 # come from either the bulk data or NZBN.
 HAS_WEBSITE = ("(ccd.websites <> '' OR EXISTS (SELECT 1 FROM companies_website w "
                "WHERE w.nzbn = c.nzbn AND w.website <> 'No website'))")
 CONTACT_FILTERS = {
     "phone": "ccd.phones <> ''",
-    "email": "ccd.emails <> ''",
+    "email": HAS_SENDABLE_EMAIL.format(alias="ccd"),
     "website": HAS_WEBSITE,
-    "any": f"(ccd.phones <> '' OR ccd.emails <> '' OR {HAS_WEBSITE})",
+    "any": f"(ccd.phones <> '' OR {HAS_SENDABLE_EMAIL.format(alias='ccd')} OR {HAS_WEBSITE})",
 }
 
 # One row per company with the related records the list shows. The lateral subqueries only run
@@ -41,9 +48,18 @@ SELECT c.nzbn, c.entity_name, c.registration_date, c.entity_type, c.entity_statu
        coalesce(dir.n, 0) AS director_count, dir.names AS directors,
        coalesce(sh.n, 0) AS shareholder_count,
        gst.gst_number, web.website, tn.trading_name,
-       ccd.phones, ccd.emails, ccd.websites AS nzbn_websites, ccd.fetched_at AS contact_fetched_at
+       ccd.phones, ccd.emails, em.sendable_emails, em.unsubscribed_emails,
+       ccd.websites AS nzbn_websites, ccd.fetched_at AS contact_fetched_at
 FROM companies_core_data c
 """ + CONTACT_JOIN + """
+LEFT JOIN LATERAL (
+    -- Split the "; "-joined emails so unsubscribed addresses can be told apart from sendable ones.
+    SELECT coalesce(string_agg(t.value, '; ') FILTER (WHERE s.email IS NULL), '') AS sendable_emails,
+           coalesce(string_agg(t.value, '; ') FILTER (WHERE s.email IS NOT NULL), '') AS unsubscribed_emails
+    FROM unnest(string_to_array(coalesce(ccd.emails, ''), '; ')) AS t(value)
+    LEFT JOIN email_suppressions s ON s.email = lower(t.value)
+    WHERE t.value <> ''
+) em ON true
 LEFT JOIN LATERAL (
     SELECT industry_classification_code AS code, industry_classification_description AS description
     FROM companies_business_industry_classification b
@@ -114,7 +130,10 @@ EXPORT_COLUMNS = [
     ("website", "Website"),
     ("trading_name", "Trading name"),
     ("phones", "Phone numbers (NZBN)"),
-    ("emails", "Email addresses (NZBN)"),
+    # Only addresses that may still be contacted; unsubscribed ones are listed separately so they
+    # can be checked but never end up in a sending list.
+    ("sendable_emails", "Email addresses (NZBN)"),
+    ("unsubscribed_emails", "Unsubscribed emails"),
     ("nzbn_websites", "Websites (NZBN)"),
 ]
 

@@ -38,3 +38,17 @@ class EnrichmentJob(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     started_at = Column(DateTime(timezone=True), nullable=True)
     finished_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class EmailSuppression(Base):
+    """
+    An address that must never be emailed again - someone unsubscribed, or the mail bounced.
+    It applies to the address itself, so it covers every company that lists it.
+    """
+    __tablename__ = "email_suppressions"
+
+    email = Column(String(320), primary_key=True)  # always stored lower-case
+    reason = Column(String(40), nullable=False, default="unsubscribe")
+    note = Column(Text, nullable=True)
+    created_by = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

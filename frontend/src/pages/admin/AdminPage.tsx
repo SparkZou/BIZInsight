@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link, Navigate, NavLink, Route, Routes } from 'react-router-dom';
-import { Building2, Loader2, Lock, LogOut, Search, UploadCloud } from 'lucide-react';
+import { Building2, Loader2, Lock, LogOut, MailX, Search, UploadCloud } from 'lucide-react';
 import BizInsightLogo from '../../components/BizInsightLogo';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { ADMIN_API } from './api';
 import CompanySearchPage from './CompanySearchPage';
 import ImportPage from './ImportPage';
 import NewCompaniesPage from './NewCompaniesPage';
+import UnsubscribesPage from './UnsubscribesPage';
 
 const NAV_ITEMS = [
     { to: '/admin', label: 'Data import', icon: UploadCloud, end: true },
     { to: '/admin/new-companies', label: 'New companies', icon: Building2, end: false },
     { to: '/admin/search', label: 'Company search', icon: Search, end: false },
+    { to: '/admin/unsubscribes', label: 'Unsubscribes', icon: MailX, end: false },
 ];
 
 // The admin pages are data-heavy, so they use the full window width on desktop screens and only
@@ -91,6 +93,7 @@ export default function AdminPage() {
                         <Route index element={<ImportPage onSessionExpired={sessionExpired} />} />
                         <Route path="new-companies" element={<NewCompaniesPage onSessionExpired={sessionExpired} />} />
                         <Route path="search" element={<CompanySearchPage onSessionExpired={sessionExpired} />} />
+                        <Route path="unsubscribes" element={<UnsubscribesPage onSessionExpired={sessionExpired} />} />
                         <Route path="*" element={<Navigate to="/admin" replace />} />
                     </Routes>
                 </main>

@@ -59,6 +59,9 @@ interface CompanyRow {
     trading_name: string | null;
     phones: string | null;
     emails: string | null;
+    /** Emails that may still be contacted (the unsubscribe list is already applied). */
+    sendable_emails: string | null;
+    unsubscribed_emails: string | null;
     nzbn_websites: string | null;
     contact_fetched_at: string | null;
 }
@@ -67,7 +70,6 @@ const monthLabel = (month: string) =>
     new Date(`${month}-01T00:00:00`).toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
 
 const websiteOf = (company: CompanyRow) => company.website || company.nzbn_websites?.split('; ')[0] || null;
-const firstEmail = (company: CompanyRow) => company.emails?.split('; ')[0] || null;
 
 const Blank = () => <span className="text-gray-600">-</span>;
 
@@ -103,23 +105,32 @@ function RankedList({ title, icon: Icon, items, className = '' }: { title: strin
     );
 }
 
-/** Phone and email, on one line each, for the table and the phone card. */
+/** Phone and email. Unsubscribed addresses are shown struck through and are never mailto links. */
 function ContactCell({ company }: { company: CompanyRow }) {
     if (!company.contact_fetched_at) return <Blank />;
     if (!company.phones && !company.emails) return <span className="text-xs text-gray-500">None listed</span>;
+    const sendable = company.sendable_emails?.split('; ').filter(Boolean) ?? [];
+    const unsubscribed = company.unsubscribed_emails?.split('; ').filter(Boolean) ?? [];
     return (
         <>
             {company.phones && <p className="truncate text-gray-300 font-mono" title={company.phones}>{company.phones}</p>}
-            {company.emails && (
+            {sendable.map(email => (
                 <a
-                    href={`mailto:${firstEmail(company)}`}
+                    key={email}
+                    href={`mailto:${email}`}
                     onClick={e => e.stopPropagation()}
                     className="block truncate text-neon-blue hover:underline"
-                    title={company.emails}
+                    title={email}
                 >
-                    {company.emails}
+                    {email}
                 </a>
-            )}
+            ))}
+            {unsubscribed.map(email => (
+                <p key={email} className="truncate text-gray-500" title={`${email} - unsubscribed`}>
+                    <span className="line-through">{email}</span>
+                    <span className="ml-2 text-xs text-red-300">Unsubscribed</span>
+                </p>
+            ))}
         </>
     );
 }
@@ -302,7 +313,7 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                 </div>
                 <p className="text-xs text-gray-500">
                     This searches the selected month only. To find any company, use <Link to="/admin/search" className="text-neon-blue hover:underline">Company search</Link>.
-                    {contact && ' Export CSV downloads exactly what the filters show.'}
+                    {' '}"Has email" and the CSV leave out addresses on the <Link to="/admin/unsubscribes" className="text-neon-blue hover:underline">unsubscribe list</Link>.
                 </p>
 
                 {loading ? <LoadingSpinner /> : companies.length === 0 ? (

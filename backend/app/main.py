@@ -4,7 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.api_v1.endpoints import (
-    admin, admin_companies, admin_enrichment, admin_search, dashboard, contact, companies,
+    admin, admin_companies, admin_enrichment, admin_search, admin_unsubscribes,
+    dashboard, contact, companies,
 )
 from app.api.endpoints import stats
 from app.services import enrichment_jobs, import_jobs
@@ -38,6 +39,7 @@ app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["a
 app.include_router(admin_companies.router, prefix=f"{settings.API_V1_STR}/admin/new-companies", tags=["admin"])
 app.include_router(admin_search.router, prefix=f"{settings.API_V1_STR}/admin/search", tags=["admin"])
 app.include_router(admin_enrichment.router, prefix=f"{settings.API_V1_STR}/admin/enrichment", tags=["admin"])
+app.include_router(admin_unsubscribes.router, prefix=f"{settings.API_V1_STR}/admin/unsubscribes", tags=["admin"])
 
 # Stats routes
 app.include_router(stats.router, prefix="/api/stats", tags=["statistics"])

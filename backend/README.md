@@ -137,6 +137,9 @@ Once running, access interactive API docs at:
 - `POST /api/v1/admin/enrichment/jobs` - Start fetching contact details for `{"month": "2026-08"}`
 - `POST /api/v1/admin/enrichment/jobs/{id}/stop` - Stop the running job
 - `GET /api/v1/admin/enrichment/companies/{nzbn}` - One company's NZBN contact details
+- `GET /api/v1/admin/unsubscribes?q=` - Addresses that must never be emailed again, with how many companies list each
+- `POST /api/v1/admin/unsubscribes` - Add every address found in `{"text": "...", "reason": "unsubscribe", "note": ""}`
+- `DELETE /api/v1/admin/unsubscribes/{email}` - Take an address off the list
 - `GET /api/v1/admin/search?q=&people=true&page=1&page_size=50` - Search every register by name, NZBN or company number, and companies by director or shareholder name
 
 ## ⚙️ Configuration

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -71,19 +71,71 @@ function Field({ label, children }: { label: string; children?: ReactNode }) {
 
 const Empty = ({ children }: { children: ReactNode }) => <p className="text-sm text-gray-500">{children}</p>;
 
-function ValueList({ label, values, link }: { label: string; values?: string[]; link?: 'email' | 'web' }) {
+function ValueList({ label, values, link }: { label: string; values?: string[]; link?: 'web' }) {
     return (
         <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{label}</p>
             {values && values.length > 0 ? values.map(value => (
                 <p key={value} className="text-sm text-white break-words">
-                    {link === 'email' ? (
-                        <a href={`mailto:${value}`} className="text-neon-blue hover:underline">{value}</a>
-                    ) : link === 'web' ? (
+                    {link === 'web' ? (
                         <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-neon-blue hover:underline">{value}</a>
                     ) : value}
                 </p>
             )) : <p className="text-sm text-gray-600">-</p>}
+        </div>
+    );
+}
+
+/** Emails with their unsubscribe state, and a button to add or remove each address from the list. */
+function EmailList({ emails, unsubscribed, onChanged }: {
+    emails: string[]; unsubscribed: string[]; onChanged: () => void;
+}) {
+    const [busy, setBusy] = useState('');
+    const suppressed = new Set(unsubscribed.map(email => email.toLowerCase()));
+
+    const toggle = async (email: string, isUnsubscribed: boolean) => {
+        setBusy(email);
+        try {
+            if (isUnsubscribed) {
+                await fetch(`${ADMIN_API}/unsubscribes/${encodeURIComponent(email.toLowerCase())}`, { method: 'DELETE' });
+            } else {
+                await fetch(`${ADMIN_API}/unsubscribes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: email, reason: 'unsubscribe' }),
+                });
+            }
+            onChanged();
+        } finally {
+            setBusy('');
+        }
+    };
+
+    return (
+        <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Email addresses</p>
+            {emails.length === 0 ? <p className="text-sm text-gray-600">-</p> : emails.map(email => {
+                const isUnsubscribed = suppressed.has(email.toLowerCase());
+                return (
+                    <p key={email} className="text-sm break-words flex flex-wrap items-center gap-2">
+                        {isUnsubscribed ? (
+                            <>
+                                <span className="line-through text-gray-500">{email}</span>
+                                <span className="text-xs text-red-300">Unsubscribed</span>
+                            </>
+                        ) : (
+                            <a href={`mailto:${email}`} className="text-neon-blue hover:underline">{email}</a>
+                        )}
+                        <button
+                            onClick={() => toggle(email, isUnsubscribed)}
+                            disabled={busy === email}
+                            className="text-xs text-gray-500 hover:text-white underline disabled:opacity-40"
+                        >
+                            {isUnsubscribed ? 'Allow again' : 'Unsubscribe'}
+                        </button>
+                    </p>
+                );
+            })}
         </div>
     );
 }
@@ -118,13 +170,17 @@ export default function CompanyDetail({ nzbn }: { nzbn: string }) {
             .catch(e => setError(e.message));
     }, [nzbn]);
 
-    useEffect(() => {
-        setContact(undefined);
+    const loadContact = useCallback(() => {
         fetch(`${ADMIN_API}/enrichment/companies/${nzbn}`)
             .then(res => (res.ok ? res.json() : null))
             .then(setContact)
             .catch(() => setContact(null));
     }, [nzbn]);
+
+    useEffect(() => {
+        setContact(undefined);
+        loadContact();
+    }, [loadContact]);
 
     if (error) return <p className="p-8 text-red-400">{error}</p>;
     if (!company) return <LoadingSpinner />;
@@ -189,7 +245,11 @@ export default function CompanyDetail({ nzbn }: { nzbn: string }) {
                         <>
                             <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
                                 <ValueList label="Phone numbers" values={contactDetails.phones} />
-                                <ValueList label="Email addresses" values={contactDetails.emails} link="email" />
+                                <EmailList
+                                    emails={contactDetails.emails || []}
+                                    unsubscribed={contact.unsubscribed_emails || []}
+                                    onChanged={loadContact}
+                                />
                                 <ValueList label="Websites" values={contactDetails.websites} link="web" />
                                 <ValueList label="Trading names" values={contactDetails.trading_names} />
                                 <ValueList label="Office address" values={contactDetails.office_addresses} />
@@ -202,6 +262,7 @@ export default function CompanyDetail({ nzbn }: { nzbn: string }) {
                             </div>
                             <p className="text-xs text-gray-500 mt-4">
                                 From the NZBN register (Companies Office website), fetched {new Date(contact.fetched_at).toLocaleString()}.
+                                Unsubscribed addresses are never emailed again, on this or any other company.
                             </p>
                         </>
                     )}

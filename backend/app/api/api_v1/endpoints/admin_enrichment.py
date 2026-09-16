@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.api.api_v1.endpoints.admin import require_admin
-from app.api.api_v1.endpoints.admin_companies import _latest_month, _month_range
+from app.api.api_v1.endpoints.admin_companies import HAS_SENDABLE_EMAIL, _latest_month, _month_range
 from app.core.config import settings
 from app.models.enrichment import CompanyContactDetails, EnrichmentJob
 from app.services import companies_office_web, enrichment_jobs
@@ -50,12 +50,14 @@ def enrichment_status(
 ):
     month = month or _latest_month(db)
     start, end = _month_range(month)
-    coverage = db.execute(text("""
+    coverage = db.execute(text(f"""
         SELECT count(*) AS companies,
                count(d.nzbn) FILTER (WHERE d.error IS NULL) AS fetched,
                count(d.nzbn) FILTER (WHERE d.error IS NOT NULL) AS unreadable,
                count(*) FILTER (WHERE d.phones <> '') AS with_phone,
-               count(*) FILTER (WHERE d.emails <> '') AS with_email,
+               -- Only addresses that may still be emailed count here.
+               count(*) FILTER (WHERE {HAS_SENDABLE_EMAIL.format(alias='d')}) AS with_email,
+               count(*) FILTER (WHERE d.emails <> '' AND NOT {HAS_SENDABLE_EMAIL.format(alias='d')}) AS email_unsubscribed,
                count(*) FILTER (WHERE d.websites <> '') AS with_website
         FROM companies_core_data c
         LEFT JOIN company_contact_details d ON d.nzbn = c.nzbn
@@ -109,11 +111,21 @@ def company_contact_details(nzbn: str, username: str = Depends(require_admin), d
     row = db.get(CompanyContactDetails, nzbn)
     if not row:
         raise HTTPException(status_code=404, detail="Contact details haven't been fetched for this company")
+    emails = [address for address in (row.details or {}).get("emails", []) if address]
+    unsubscribed = []
+    if emails:
+        unsubscribed = [
+            address for (address,) in db.execute(
+                text("SELECT email FROM email_suppressions WHERE email = ANY(:emails)"),
+                {"emails": [address.lower() for address in emails]},
+            ).all()
+        ]
     return {
         "nzbn": row.nzbn,
         "company_number": row.company_number,
         "source": row.source,
         "details": row.details,
+        "unsubscribed_emails": unsubscribed,
         "error": row.error,
         "fetched_at": row.fetched_at,
     }
