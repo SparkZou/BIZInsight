@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import {
     Briefcase, Building2, ChevronLeft, ChevronRight, Download, MapPin, Search, X
 } from 'lucide-react';

@@ -1,0 +1,4 @@
+# Only the dependency manifests go into the image; the build is mounted at runtime.
+*
+!package.json
+!package-lock.json

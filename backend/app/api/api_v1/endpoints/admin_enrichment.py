@@ -14,7 +14,7 @@ from app.api.api_v1.endpoints.admin import require_admin
 from app.api.api_v1.endpoints.admin_companies import HAS_SENDABLE_EMAIL, _latest_month, _month_range
 from app.core.config import settings
 from app.models.enrichment import CompanyContactDetails, EnrichmentJob
-from app.services import companies_office_web, enrichment_jobs
+from app.services import enrichment_jobs
 
 router = APIRouter()
 
@@ -79,22 +79,16 @@ def start_enrichment(
     username: str = Depends(require_admin),
     db: Session = Depends(deps.get_db),
 ):
-    start, end = _month_range(body.month)
-    if not enrichment_jobs.reserve():
-        raise HTTPException(status_code=409, detail="A contact details job is already running.")
-    try:
-        job = EnrichmentJob(
-            status="queued", month=body.month, source=companies_office_web.SOURCE, created_by=username,
-            total=0, done=0, found=0, failed=0, log="",
-        )
-        db.add(job)
-        db.commit()
-        db.refresh(job)
-    except BaseException:
-        enrichment_jobs.release()
-        raise
-    enrichment_jobs.run_in_background(job.id, start, end)
-    return _job_dict(job)
+    # Reading the Companies Office website is switched off: its robots.txt disallows automated
+    # access and the bulk data agreement only covers data obtained through the proper channels.
+    # Contact details will be fetched through the NZBN API once the subscription is approved;
+    # app/services/enrichment_jobs.py stays in place for that source.
+    _month_range(body.month)
+    raise HTTPException(
+        status_code=409,
+        detail="Fetching contact details from the Companies Office website is switched off. "
+               "They will come from the NZBN API once the API key is approved.",
+    )
 
 
 @router.post("/jobs/{job_id}/stop")

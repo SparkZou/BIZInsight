@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.api_v1.endpoints import (
     admin, admin_companies, admin_enrichment, admin_search, admin_unsubscribes,
-    dashboard, contact, companies,
+    dashboard, dataset, contact, companies, sitemap,
 )
 from app.api.endpoints import stats
 from app.services import enrichment_jobs, import_jobs
@@ -33,6 +33,8 @@ app.add_middleware(
 
 # API v1 routes
 app.include_router(dashboard.router, prefix=f"{settings.API_V1_STR}", tags=["dashboard"])
+app.include_router(dataset.router, prefix=f"{settings.API_V1_STR}", tags=["dataset"])
+app.include_router(sitemap.router, prefix=f"{settings.API_V1_STR}/sitemap", tags=["sitemap"])
 app.include_router(contact.router, prefix=f"{settings.API_V1_STR}", tags=["contact"])
 app.include_router(companies.router, prefix=f"{settings.API_V1_STR}/companies", tags=["companies"])
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])

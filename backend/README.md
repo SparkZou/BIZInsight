@@ -158,7 +158,9 @@ All settings are read from `backend/.env` (see `.env.example`):
 
 ## 📦 Production Deployment
 
-Production runs at https://companies.aicloud.co.nz with Docker Compose ([`../docker-compose.yml`](../docker-compose.yml)) in `/opt/webApp/bizinsight`: an nginx container for the built frontend, this API, and a PostgreSQL 16 container. The server's shared Caddy handles HTTPS and routes `/api/*` to the API. Pushes to `master` deploy through `.github/workflows/deploy.yml`; the server-side files live in [`../deploy`](../deploy).
+Production runs at https://companies.aicloud.co.nz with Docker Compose ([`../docker-compose.yml`](../docker-compose.yml)) in `/opt/webApp/bizinsight`: a Node container serving the server-rendered site (React Router; the build is uploaded by CI into `frontend/build`), this API, and a PostgreSQL 16 container. The server's shared Caddy handles HTTPS and routes `/api/*` to the API and everything else to the site. Pushes to `master` deploy through `.github/workflows/deploy.yml`; the server-side files live in [`../deploy`](../deploy).
+
+The site's loaders call this API over the internal network (`API_INTERNAL_URL`), so pages arrive as complete HTML; `/sitemap.xml` and `/sitemaps/*.xml` are produced here (`GET /api/v1/sitemap/...`) and served by the site, and `GET /api/v1/dataset` reports which monthly snapshot is loaded.
 
 Import or refresh the bulk data on the server (from Windows, `deploy/import-bulk-data.ps1` uploads the zip and runs this for you):
 

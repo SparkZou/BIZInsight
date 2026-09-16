@@ -1,14 +1,14 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { reactRouter } from '@react-router/dev/vite';
+import { defineConfig } from 'vite';
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
-  server: {
-    // The app calls /api on its own origin: Caddy proxies it in production,
-    // this proxy forwards it to the local backend during development.
-    proxy: {
-      '/api': 'http://127.0.0.1:8001',
+    plugins: [reactRouter()],
+    server: {
+        // In the browser the app calls /api on its own origin (Caddy proxies it in production);
+        // this forwards it to the local backend during development. Server-side loaders call the
+        // backend directly, see app/lib/api.ts.
+        proxy: {
+            '/api': 'http://127.0.0.1:8001',
+        },
     },
-  },
-})
+});

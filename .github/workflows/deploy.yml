@@ -13,21 +13,21 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Build frontend
+      - name: Build site
         working-directory: frontend
         run: |
           npm ci
           npm run build
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -40,14 +40,14 @@ jobs:
           pip install -q -r requirements.txt
           python -c "import app.main"
 
-      - name: Upload frontend build
+      - name: Upload site build
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: frontend/dist/*
-          target: /opt/webApp/bizinsight/frontend/dist.new
+          source: frontend/build/*
+          target: /opt/webApp/bizinsight/frontend/build.new
           strip_components: 2
           rm: true
 

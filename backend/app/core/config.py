@@ -11,6 +11,8 @@ class Settings(BaseSettings):
 
     # Comma-separated list of allowed CORS origins ("*" allows all)
     BACKEND_CORS_ORIGINS: str = "*"
+    # Public origin of the site, used for absolute URLs in sitemaps.
+    SITE_URL: str = "https://companies.aicloud.co.nz"
 
     # Admin page (/admin). Login stays disabled until ADMIN_PASSWORD is set.
     ADMIN_USERNAME: str = "admin"

@@ -2,13 +2,13 @@
 # BIZInsight — https://companies.aicloud.co.nz
 # Path on server: /opt/webApp/bizinsight (git checkout of SparkZou/BIZInsight)
 #
-#   bizinsight-frontend : static SPA (nginx), serves frontend/dist uploaded by GitHub Actions
-#   bizinsight-backend  : FastAPI (/api/*, including the /admin bulk data import), on both networks
-#   bizinsight-db       : Postgres 16, internal only (bizinsight-net)
+#   bizinsight-web     : server-rendered React Router site (Node), serves frontend/build uploaded by GitHub Actions
+#   bizinsight-backend : FastAPI (/api/*, including the /admin bulk data import), on both networks
+#   bizinsight-db      : Postgres 16, internal only (bizinsight-net)
 #
 # The shared Caddy (/opt/webApp/caddy) terminates TLS and routes:
 #   /api/*  -> bizinsight-backend:8000
-#   the rest -> bizinsight-frontend:80
+#   the rest -> bizinsight-web:3000
 # Site block: deploy/caddy/companies.aicloud.co.nz.caddy
 #
 # Secrets come from ./.env (POSTGRES_PASSWORD, ADMIN_PASSWORD, ADMIN_SECRET_KEY) — not committed.
@@ -18,21 +18,31 @@
 name: bizinsight
 
 services:
-  bizinsight-frontend:
-    image: nginx:alpine
-    container_name: bizinsight-frontend
+  bizinsight-web:
+    build: ./frontend
+    image: bizinsight-web:latest
+    container_name: bizinsight-web
     restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # Loaders fetch from the API over the internal network; browsers use /api on the site origin.
+      API_INTERNAL_URL: http://bizinsight-backend:8000
     volumes:
-      # The parent directory is mounted (not dist itself) so deploy.sh can swap in a new
-      # build with a rename and nginx picks it up without a restart.
-      - ./frontend:/srv/frontend:ro
-      - ./deploy/nginx/frontend.conf:/etc/nginx/conf.d/default.conf:ro
+      # The parent directory is mounted (not build itself) so deploy.sh can swap in a new build
+      # with a rename; the server picks the new files up on restart.
+      - ./frontend/build:/app/build:ro
+    depends_on:
+      bizinsight-backend:
+        condition: service_healthy
     networks:
+      - bizinsight-net
       - shared-proxy-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--output-document=/dev/null", "http://127.0.0.1:80/"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--output-document=/dev/null", "http://127.0.0.1:3000/robots.txt"]
       interval: 30s
       timeout: 10s
+      start_period: 20s
       retries: 3
 
   bizinsight-backend:
@@ -46,6 +56,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://bizinsight:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@bizinsight-db:5432/nzcompanies
       BACKEND_CORS_ORIGINS: https://companies.aicloud.co.nz
+      SITE_URL: https://companies.aicloud.co.nz
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:-}

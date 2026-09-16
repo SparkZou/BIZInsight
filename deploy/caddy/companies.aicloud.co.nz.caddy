@@ -3,8 +3,8 @@
 # 追加到 /opt/webApp/caddy/Caddyfile 后热加载：
 #   docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
 # 容器（网络 shared-proxy-network）：
-#   bizinsight-frontend : 前端静态 SPA（nginx），SPA fallback 在容器内部处理（包括 /admin）
-#   bizinsight-backend  : FastAPI，监听 8000（/api/*）
+#   bizinsight-web     : 服务端渲染的站点（Node / React Router），监听 3000；自己处理 404、robots.txt、sitemap
+#   bizinsight-backend : FastAPI，监听 8000（/api/*）
 # 证书由 Caddy 自动签发/续期。HSTS 不带 includeSubDomains，以免影响其它 aicloud.co.nz 子域。
 companies.aicloud.co.nz {
 	encode zstd gzip
@@ -32,7 +32,7 @@ companies.aicloud.co.nz {
 		reverse_proxy bizinsight-backend:8000
 	}
 	handle {
-		reverse_proxy bizinsight-frontend:80
+		reverse_proxy bizinsight-web:3000
 	}
 }
 # <<< companies.aicloud.co.nz <<<

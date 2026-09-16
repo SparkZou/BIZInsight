@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { Link, Navigate, NavLink, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, NavLink, Route, Routes } from 'react-router';
 import { Building2, Loader2, Lock, LogOut, MailX, Search, UploadCloud } from 'lucide-react';
 import BizInsightLogo from '../../components/BizInsightLogo';
 import LoadingSpinner from '../../components/LoadingSpinner';

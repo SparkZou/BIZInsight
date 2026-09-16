@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Contact, Loader2, Play, Square } from 'lucide-react';
+import { Contact, Loader2, Square } from 'lucide-react';
 import { ADMIN_API } from './api';
 
 const API = `${ADMIN_API}/enrichment`;
@@ -105,22 +105,15 @@ export default function EnrichmentPanel({ month, monthName, onSessionExpired, on
                 <div>
                     <h2 className="font-semibold flex items-center gap-2"><Contact className="w-4 h-4 text-neon-green" /> Contact details (NZBN)</h2>
                     <p className="text-sm text-gray-400 mt-1">
-                        Phone numbers, emails and websites the companies published on the NZBN register, read one company about every {status.delay_seconds}s
-                        from the Companies Office website until the NZBN API subscription is approved.
+                        Phone numbers, emails and websites the companies published on the NZBN register.
+                        {' '}Fetching from the Companies Office website is switched off (its robots.txt disallows automated access);
+                        {' '}{remaining > 0 ? `the ${remaining.toLocaleString()} companies in ${monthName} without details` : `${monthName}`} will be fetched
+                        through the NZBN API once the API key is approved. Details already fetched stay available.
                     </p>
                 </div>
-                {running ? (
+                {running && (
                     <button onClick={() => job && post(`${API}/jobs/${job.id}/stop`)} className="flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-semibold bg-red-500/10 text-red-300 border border-red-500/40 hover:bg-red-500/20">
                         <Square className="w-4 h-4" /> Stop
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => post(`${API}/jobs`, { month })}
-                        disabled={remaining === 0 || status.busy}
-                        className="flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-semibold bg-neon-green/10 text-neon-green border border-neon-green/40 hover:bg-neon-green/20 disabled:opacity-40"
-                    >
-                        <Play className="w-4 h-4" />
-                        {remaining === 0 ? 'All fetched' : `Fetch ${remaining.toLocaleString()} for ${monthName}`}
                     </button>
                 )}
             </div>
