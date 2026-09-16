@@ -58,4 +58,9 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           command_timeout: 20m
-          script: bash /opt/webApp/bizinsight/deploy/deploy.sh
+          # Update the checkout first so the deploy script that runs is the one from this commit.
+          script: |
+            cd /opt/webApp/bizinsight
+            git fetch --quiet origin master
+            git checkout --quiet -B master origin/master
+            bash deploy/deploy.sh
