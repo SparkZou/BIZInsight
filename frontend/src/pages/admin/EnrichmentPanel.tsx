@@ -32,8 +32,13 @@ const formatDuration = (seconds: number) => {
 };
 
 /** Fetches NZBN contact details (phones, emails, websites) for a month's new companies. */
-export default function EnrichmentPanel({ month, monthName, onSessionExpired, onFinished }: {
-    month: string; monthName: string; onSessionExpired: () => void; onFinished: () => void;
+export default function EnrichmentPanel({ month, monthName, onSessionExpired, onFinished, onFilter }: {
+    month: string;
+    monthName: string;
+    onSessionExpired: () => void;
+    onFinished: () => void;
+    /** Show only the companies with this kind of contact detail in the list below. */
+    onFilter: (contact: 'phone' | 'email' | 'website') => void;
 }) {
     const [status, setStatus] = useState<Status | null>(null);
     const [message, setMessage] = useState('');
@@ -87,6 +92,12 @@ export default function EnrichmentPanel({ month, monthName, onSessionExpired, on
     const remaining = coverage.companies - coverage.fetched;
     const progress = job && job.total ? Math.round((job.done / job.total) * 100) : 0;
     const secondsLeft = job ? (job.total - job.done) * status.delay_seconds * 1.3 : 0;
+    const tiles: Array<{ label: string; value: string; contact?: 'phone' | 'email' | 'website' }> = [
+        { label: 'Fetched', value: `${coverage.fetched.toLocaleString()} / ${coverage.companies.toLocaleString()}` },
+        { label: 'With phone', value: coverage.with_phone.toLocaleString(), contact: 'phone' },
+        { label: 'With email', value: coverage.with_email.toLocaleString(), contact: 'email' },
+        { label: 'With website', value: coverage.with_website.toLocaleString(), contact: 'website' },
+    ];
 
     return (
         <section className="glass-panel rounded-2xl p-5 space-y-4">
@@ -115,16 +126,17 @@ export default function EnrichmentPanel({ month, monthName, onSessionExpired, on
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                {[
-                    ['Fetched', `${coverage.fetched.toLocaleString()} / ${coverage.companies.toLocaleString()}`],
-                    ['With phone', coverage.with_phone.toLocaleString()],
-                    ['With email', coverage.with_email.toLocaleString()],
-                    ['With website', coverage.with_website.toLocaleString()],
-                ].map(([label, value]) => (
-                    <div key={label} className="rounded-xl border border-dark-border px-4 py-3">
-                        <p className="text-xs text-gray-500">{label}</p>
-                        <p className="font-mono text-white text-lg">{value}</p>
-                    </div>
+                {tiles.map(tile => (
+                    <button
+                        key={tile.label}
+                        onClick={() => tile.contact && onFilter(tile.contact)}
+                        disabled={!tile.contact}
+                        className={`text-left rounded-xl border border-dark-border px-4 py-3 ${tile.contact ? 'hover:border-neon-green/50 hover:bg-white/5 cursor-pointer' : 'cursor-default'}`}
+                        title={tile.contact ? 'Show these companies in the list below' : undefined}
+                    >
+                        <p className="text-xs text-gray-500">{tile.label}</p>
+                        <p className="font-mono text-white text-lg">{tile.value}</p>
+                    </button>
                 ))}
             </div>
 

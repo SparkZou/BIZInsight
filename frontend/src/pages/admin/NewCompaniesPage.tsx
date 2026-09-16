@@ -13,6 +13,14 @@ import EnrichmentPanel from './EnrichmentPanel';
 const API = `${ADMIN_API}/new-companies`;
 const PAGE_SIZE = 50;
 
+const CONTACT_FILTERS = [
+    { value: '', label: 'Any contact details' },
+    { value: 'any', label: 'Has phone, email or website' },
+    { value: 'email', label: 'Has email' },
+    { value: 'phone', label: 'Has phone' },
+    { value: 'website', label: 'Has website' },
+];
+
 interface MonthOption {
     month: string;
     companies: number;
@@ -102,6 +110,7 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
     const [searchInput, setSearchInput] = useState('');
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
+    const [contact, setContact] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedNzbn, setSelectedNzbn] = useState<string | null>(null);
@@ -139,7 +148,7 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
         getJson(`${API}/summary?month=${month}`).then(setSummary).catch(e => setError(e.message));
     }, [getJson, month]);
 
-    const filterQuery = new URLSearchParams({ month, q: search, status }).toString();
+    const filterQuery = new URLSearchParams({ month, q: search, status, contact }).toString();
 
     useEffect(() => {
         if (!month) return;
@@ -155,6 +164,11 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
     }, [getJson, month, filterQuery, page, refreshKey]);
 
     const refreshList = useCallback(() => setRefreshKey(key => key + 1), []);
+
+    const filterByContact = useCallback((kind: 'phone' | 'email' | 'website') => {
+        setContact(kind);
+        setPage(1);
+    }, []);
 
     const applySearch = (e: FormEvent) => {
         e.preventDefault();
@@ -179,7 +193,7 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                 <div className="flex flex-wrap items-center gap-3">
                     <select
                         value={month}
-                        onChange={e => { setMonth(e.target.value); setPage(1); setStatus(''); }}
+                        onChange={e => { setMonth(e.target.value); setPage(1); setStatus(''); setContact(''); }}
                         className="px-4 py-2.5 bg-dark-card border border-dark-border rounded-lg text-sm outline-none focus:ring-2 focus:ring-neon-blue"
                     >
                         {months.map(option => (
@@ -221,12 +235,15 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
             )}
 
             {month && (
-                <EnrichmentPanel month={month} monthName={monthLabel(month)} onSessionExpired={onSessionExpired} onFinished={refreshList} />
+                <EnrichmentPanel
+                    month={month} monthName={monthLabel(month)}
+                    onSessionExpired={onSessionExpired} onFinished={refreshList} onFilter={filterByContact}
+                />
             )}
 
             <section className="glass-panel rounded-2xl p-5 space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <form onSubmit={applySearch} className="flex-1 flex gap-2">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+                    <form onSubmit={applySearch} className="flex-1 flex gap-2 min-w-[16rem]">
                         <div className="relative flex-1">
                             <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
                             <input
@@ -244,6 +261,13 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                         <button type="submit" className="px-4 py-2.5 rounded-lg text-sm bg-white/5 border border-dark-border hover:bg-white/10">Search</button>
                     </form>
                     <select
+                        value={contact}
+                        onChange={e => { setContact(e.target.value); setPage(1); }}
+                        className={`px-4 py-2.5 bg-dark-card border rounded-lg text-sm outline-none focus:ring-2 focus:ring-neon-blue ${contact ? 'border-neon-green/50 text-neon-green' : 'border-dark-border'}`}
+                    >
+                        {CONTACT_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                    <select
                         value={status}
                         onChange={e => { setStatus(e.target.value); setPage(1); }}
                         className="px-4 py-2.5 bg-dark-card border border-dark-border rounded-lg text-sm outline-none focus:ring-2 focus:ring-neon-blue"
@@ -254,6 +278,7 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                 </div>
                 <p className="text-xs text-gray-500">
                     This searches the selected month only. To find any company, use <Link to="/admin/search" className="text-neon-blue hover:underline">Company search</Link>.
+                    {contact && ' Export CSV downloads exactly what the filters show.'}
                 </p>
 
                 {loading ? <LoadingSpinner /> : companies.length === 0 ? (
@@ -302,7 +327,16 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                                                 {!company.contact_fetched_at ? <Blank /> : company.phones || company.emails ? (
                                                     <>
                                                         {company.phones && <p className="truncate text-gray-300 font-mono" title={company.phones}>{company.phones}</p>}
-                                                        {company.emails && <p className="truncate text-neon-blue" title={company.emails}>{company.emails}</p>}
+                                                        {company.emails && (
+                                                            <a
+                                                                href={`mailto:${company.emails.split('; ')[0]}`}
+                                                                onClick={e => e.stopPropagation()}
+                                                                className="block truncate text-neon-blue hover:underline"
+                                                                title={company.emails}
+                                                            >
+                                                                {company.emails}
+                                                            </a>
+                                                        )}
                                                     </>
                                                 ) : <span className="text-xs text-gray-500">None listed</span>}
                                             </td>

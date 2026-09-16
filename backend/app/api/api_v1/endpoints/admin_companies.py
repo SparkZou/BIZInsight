@@ -18,9 +18,22 @@ from app.api.api_v1.endpoints.admin import require_admin
 
 router = APIRouter()
 
+# Contact details come from company_contact_details, filled by the admin contact details job.
+CONTACT_JOIN = "LEFT JOIN company_contact_details ccd ON ccd.nzbn = c.nzbn AND ccd.error IS NULL"
+
+# "contact" filter values -> condition. Phones and emails only exist in the NZBN data; a website can
+# come from either the bulk data or NZBN.
+HAS_WEBSITE = ("(ccd.websites <> '' OR EXISTS (SELECT 1 FROM companies_website w "
+               "WHERE w.nzbn = c.nzbn AND w.website <> 'No website'))")
+CONTACT_FILTERS = {
+    "phone": "ccd.phones <> ''",
+    "email": "ccd.emails <> ''",
+    "website": HAS_WEBSITE,
+    "any": f"(ccd.phones <> '' OR ccd.emails <> '' OR {HAS_WEBSITE})",
+}
+
 # One row per company with the related records the list shows. The lateral subqueries only run
-# for the rows returned, so a page of 50 takes ~0.1s on the full dataset. Contact details come from
-# company_contact_details, filled by the admin contact details job.
+# for the rows returned, so a page of 50 takes ~0.1s on the full dataset.
 COMPANY_ROWS_SQL = """
 SELECT c.nzbn, c.entity_name, c.registration_date, c.entity_type, c.entity_status,
        bic.code AS industry_code, bic.description AS industry,
@@ -30,7 +43,7 @@ SELECT c.nzbn, c.entity_name, c.registration_date, c.entity_type, c.entity_statu
        gst.gst_number, web.website, tn.trading_name,
        ccd.phones, ccd.emails, ccd.websites AS nzbn_websites, ccd.fetched_at AS contact_fetched_at
 FROM companies_core_data c
-LEFT JOIN company_contact_details ccd ON ccd.nzbn = c.nzbn AND ccd.error IS NULL
+""" + CONTACT_JOIN + """
 LEFT JOIN LATERAL (
     SELECT industry_classification_code AS code, industry_classification_description AS description
     FROM companies_business_industry_classification b
@@ -125,7 +138,7 @@ def _latest_month(db: Session) -> str:
     return latest.strftime("%Y-%m")
 
 
-def _filters(month: str, q: str, status: str) -> Tuple[str, dict]:
+def _filters(month: str, q: str, status: str, contact: str = "") -> Tuple[str, dict]:
     start, end = _month_range(month)
     where = ["c.registration_date >= :start", "c.registration_date < :end"]
     params = {"start": start, "end": end}
@@ -135,6 +148,10 @@ def _filters(month: str, q: str, status: str) -> Tuple[str, dict]:
     if status:
         where.append("c.entity_status = :status")
         params["status"] = status
+    if contact:
+        if contact not in CONTACT_FILTERS:
+            raise HTTPException(status_code=400, detail=f"contact must be one of: {', '.join(CONTACT_FILTERS)}")
+        where.append(CONTACT_FILTERS[contact])
     return " AND ".join(where), params
 
 
@@ -198,14 +215,17 @@ def list_new_companies(
     month: Optional[str] = None,
     q: str = "",
     status: str = "",
+    contact: str = "",
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     username: str = Depends(require_admin),
     db: Session = Depends(deps.get_db),
 ):
     month = month or _latest_month(db)
-    where, params = _filters(month, q, status)
-    total = db.execute(text(f"SELECT count(*) FROM companies_core_data c WHERE {where}"), params).scalar()
+    where, params = _filters(month, q, status, contact)
+    total = db.execute(
+        text(f"SELECT count(*) FROM companies_core_data c {CONTACT_JOIN} WHERE {where}"), params
+    ).scalar()
     rows = db.execute(
         text(COMPANY_ROWS_SQL.format(where=where) + " LIMIT :limit OFFSET :offset"),
         {**params, "limit": page_size, "offset": (page - 1) * page_size},
@@ -224,11 +244,12 @@ def export_new_companies(
     month: Optional[str] = None,
     q: str = "",
     status: str = "",
+    contact: str = "",
     username: str = Depends(require_admin),
     db: Session = Depends(deps.get_db),
 ):
     month = month or _latest_month(db)
-    where, params = _filters(month, q, status)
+    where, params = _filters(month, q, status, contact)
     rows = db.execute(text(COMPANY_ROWS_SQL.format(where=where)), params).mappings().all()
 
     out = io.StringIO()
@@ -238,8 +259,9 @@ def export_new_companies(
     for row in rows:
         writer.writerow(["" if row[key] is None else row[key] for key, _ in EXPORT_COLUMNS])
 
+    suffix = f"-{contact}" if contact else ""
     return Response(
         content=out.getvalue(),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="new-companies-{month}.csv"'},
+        headers={"Content-Disposition": f'attachment; filename="new-companies-{month}{suffix}.csv"'},
     )

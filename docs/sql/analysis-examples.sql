@@ -92,6 +92,30 @@ WHERE i.appointment_date >= DATE '2026-08-01' AND i.appointment_date < DATE '202
 ORDER BY i.appointment_date;
 
 
+-- Companies with contact details from the NZBN register (filled by the admin Contact details job)
+SELECT c.registration_date, c.entity_name, c.nzbn, d.emails, d.phones, d.websites, d.trading_names
+FROM companies_core_data c
+JOIN company_contact_details d USING (nzbn)
+WHERE d.error IS NULL
+  AND d.emails <> ''                                    -- or: d.phones <> '' / d.websites <> ''
+  AND c.registration_date >= DATE '2026-08-01' AND c.registration_date < DATE '2026-09-01'
+ORDER BY c.registration_date DESC;
+
+
+-- How much of each month has been fetched, and how many companies published contact details
+SELECT to_char(c.registration_date, 'YYYY-MM') AS month,
+       count(*) AS companies,
+       count(d.nzbn) FILTER (WHERE d.error IS NULL) AS fetched,
+       count(*) FILTER (WHERE d.emails <> '') AS with_email,
+       count(*) FILTER (WHERE d.phones <> '') AS with_phone,
+       count(*) FILTER (WHERE d.websites <> '') AS with_website
+FROM companies_core_data c
+LEFT JOIN company_contact_details d ON d.nzbn = c.nzbn
+WHERE c.registration_date >= date_trunc('month', current_date) - INTERVAL '12 months'
+GROUP BY 1
+ORDER BY 1 DESC;
+
+
 -- Which date columns each table offers
 SELECT table_name, string_agg(column_name, ', ' ORDER BY ordinal_position) AS date_columns
 FROM information_schema.columns

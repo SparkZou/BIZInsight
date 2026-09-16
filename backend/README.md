@@ -131,8 +131,12 @@ Once running, access interactive API docs at:
 - `GET /api/v1/admin/imports/{id}` - One import with its log
 - `GET /api/v1/admin/new-companies/months` - Months with registrations, and the latest month in the data
 - `GET /api/v1/admin/new-companies/summary?month=2026-08` - A month's registrations by status, type, industry and city
-- `GET /api/v1/admin/new-companies?month=2026-08&q=&status=&page=1&page_size=50` - A month's new companies with their directors, industry, addresses, shareholder count, GST and website
-- `GET /api/v1/admin/new-companies/export?month=2026-08` - The same list as CSV
+- `GET /api/v1/admin/new-companies?month=2026-08&q=&status=&contact=&page=1&page_size=50` - A month's new companies with their directors, industry, addresses, shareholder count, GST, website and NZBN contact details (`contact`: `phone`, `email`, `website` or `any`)
+- `GET /api/v1/admin/new-companies/export?month=2026-08&contact=email` - The same list, filtered the same way, as CSV
+- `GET /api/v1/admin/enrichment/status?month=2026-08` - How many of the month's companies have contact details, and recent jobs
+- `POST /api/v1/admin/enrichment/jobs` - Start fetching contact details for `{"month": "2026-08"}`
+- `POST /api/v1/admin/enrichment/jobs/{id}/stop` - Stop the running job
+- `GET /api/v1/admin/enrichment/companies/{nzbn}` - One company's NZBN contact details
 - `GET /api/v1/admin/search?q=&people=true&page=1&page_size=50` - Search every register by name, NZBN or company number, and companies by director or shareholder name
 
 ## ⚙️ Configuration
