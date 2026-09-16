@@ -8,7 +8,7 @@ import { BarList, Card, Columns, Donut, KpiCard, PALETTE, TrendLine } from '../c
 import NZMap from '../components/NZMap';
 import SearchPanel from '../components/SearchPanel';
 import { DIVISION_SHORT, apiJson, browseQuery, type BrowseFilters, type BrowseResponse, type DatasetSummary, type Insights } from '../lib/api';
-import { DEFAULT_DESCRIPTION, SITE_NAME, SITE_URL, formatDate, formatNumber, pageMeta, percentChange, shortAge } from '../lib/site';
+import { DEFAULT_DESCRIPTION, SITE_NAME, SITE_URL, formatDate, formatNumber, pageMeta, percentChange, regionPath, shortAge } from '../lib/site';
 
 export async function loader({ request }: LoaderFunctionArgs) {
     const url = new URL(request.url);
@@ -110,7 +110,7 @@ export default function Overview() {
                     <BarList
                         total={overview.live}
                         items={[
-                            ...topRegions.map(item => ({ label: item.region, value: item.live, href: `/search?${browseQuery({ region: item.region, status: 'Registered' })}` })),
+                            ...topRegions.map(item => ({ label: item.region, value: item.live, href: regionPath(item.region) })),
                             { label: 'Other NZ', value: otherRegions, color: '#94A3B8' },
                         ]}
                     />
@@ -239,7 +239,7 @@ export default function Overview() {
                                     ))}
                                 </ul>
                                 <div className="flex gap-2 mt-4">
-                                    <Link to={`/map?region=${encodeURIComponent(selectedRegion.region)}`} className="btn-primary text-xs px-3 py-1.5">View details <ArrowRight className="w-3.5 h-3.5" /></Link>
+                                    <Link to={regionPath(selectedRegion.region)} className="btn-primary text-xs px-3 py-1.5">View details <ArrowRight className="w-3.5 h-3.5" /></Link>
                                     <Link to={`/search?${browseQuery({ region: selectedRegion.region, status: 'Registered' })}`} className="btn-secondary text-xs px-3 py-1.5">Companies</Link>
                                 </div>
                             </div>

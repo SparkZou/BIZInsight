@@ -80,7 +80,10 @@ export default function JobSeekers() {
                                 </li>
                                 <li className="text-ink-muted">These figures describe the industry as a whole, not any single employer. Check the company's own profile - status, age, directors, insolvency records - before deciding.</li>
                             </ul>
-                            <Link to={`/search?${browseQuery({ division: selected.code, status: 'Registered' })}`} className="btn-primary mt-4">Search {DIVISION_SHORT[selected.code] ?? selected.name} companies <ArrowRight className="w-4 h-4" /></Link>
+                            <div className="flex flex-wrap gap-2 mt-4">
+                                <Link to={`/industries/${selected.slug}`} className="btn-primary">{DIVISION_SHORT[selected.code] ?? selected.name} by region and speciality <ArrowRight className="w-4 h-4" /></Link>
+                                <Link to={`/search?${browseQuery({ division: selected.code, status: 'Registered', sort: 'health' })}`} className="btn-secondary">Search companies</Link>
+                            </div>
                         </Card>
                         <Card title={`Newest ${DIVISION_SHORT[selected.code] ?? selected.name} companies`} icon={Building2}>
                             <ul className="divide-y divide-line">

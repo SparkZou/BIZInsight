@@ -6,7 +6,7 @@ import { BarList, Card } from '../components/charts';
 import NZMap from '../components/NZMap';
 import StatusPill from '../components/StatusPill';
 import { DIVISION_SHORT, apiJson, browseQuery, type BrowseResponse, type DatasetSummary, type Insights } from '../lib/api';
-import { SITE_NAME, companyPath, formatDate, formatNumber, pageMeta, percentChange } from '../lib/site';
+import { SITE_NAME, companyPath, formatDate, formatNumber, pageMeta, percentChange, regionPath } from '../lib/site';
 
 export async function loader({ request }: LoaderFunctionArgs) {
     const url = new URL(request.url);
@@ -82,7 +82,8 @@ export default function MapExplorer() {
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2 mt-5">
-                            <Link to={`/search?${browseQuery({ region: selected.region, status: 'Registered' })}`} className="btn-primary">Search companies in {selected.region} <ArrowRight className="w-4 h-4" /></Link>
+                            <Link to={regionPath(selected.region)} className="btn-primary">{selected.region} in detail <ArrowRight className="w-4 h-4" /></Link>
+                            <Link to={`/search?${browseQuery({ region: selected.region, status: 'Registered' })}`} className="btn-secondary">Search companies</Link>
                         </div>
                     </section>
 
@@ -104,7 +105,7 @@ export default function MapExplorer() {
             </div>
 
             <Card title="All regions" icon={MapPin} className="mt-4">
-                <BarList total={overview.live} items={regions.map(item => ({ label: item.region, value: item.live, href: `/map?region=${encodeURIComponent(item.region)}` }))} />
+                <BarList total={overview.live} items={regions.map(item => ({ label: item.region, value: item.live, href: regionPath(item.region) }))} />
                 <p className="text-xs text-ink-faint mt-3">Region is derived from the registered office postcode; a few border towns fall on the wrong side, and {formatNumber(overview.live - regions.reduce((sum, item) => sum + item.live, 0))} companies have no usable postcode.</p>
             </Card>
         </AppShell>

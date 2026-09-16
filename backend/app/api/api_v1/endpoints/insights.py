@@ -7,7 +7,7 @@ from sqlalchemy import text
 
 from app.db.session import SessionLocal
 from app.services.cache import ttl_cache
-from app.services.site_stats import DIVISIONS, REGIONS_BY_POSTCODE
+from app.services.site_stats import DIVISIONS, HEALTH_FACTORS, REGIONS
 
 router = APIRouter()
 
@@ -24,7 +24,8 @@ def all_stats() -> dict:
     stats = {key: value for key, value, _ in rows}
     stats["computed_at"] = max(computed for _, _, computed in rows).isoformat()
     stats["division_names"] = DIVISIONS
-    stats["region_names"] = sorted({region for _, _, region in REGIONS_BY_POSTCODE})
+    stats["region_names"] = REGIONS
+    stats["health_factors"] = HEALTH_FACTORS
     return stats
 
 

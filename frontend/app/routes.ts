@@ -6,7 +6,19 @@ export default [
     route('map', 'routes/map.tsx'),
     route('job-seekers', 'routes/job-seekers.tsx'),
     route('data-sources', 'routes/data-sources.tsx'),
+    route('health-indicator', 'routes/health-indicator.tsx'),
     route('dashboard', 'routes/dashboard.tsx'),
+    // Programmatic pages: one per industry division, region, city and month.
+    route('industries', 'routes/industries.tsx'),
+    route('industries/:division', 'routes/industry.tsx'),
+    route('industries/:division/:region', 'routes/industry-region.tsx'),
+    route('locations', 'routes/locations.tsx'),
+    route('locations/:region', 'routes/location.tsx'),
+    route('locations/:region/:city', 'routes/location-city.tsx'),
+    route('new-companies', 'routes/new-companies.tsx'),
+    route('new-companies/:month', 'routes/new-companies-month.tsx'),
+    route('insolvencies', 'routes/insolvencies.tsx'),
+    route('insolvencies/:month', 'routes/insolvencies-month.tsx'),
     // The slug is only there to carry the company name in the URL; the NZBN identifies the company
     // and a wrong or missing slug redirects to the right one.
     route('companies/:nzbn/:slug?', 'routes/company.tsx'),

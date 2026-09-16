@@ -16,6 +16,7 @@ export function filtersFromUrl(url: URL): BrowseFilters {
         status: get('status'),
         city: get('city'),
         website: website === 'true' || website === 'false' ? website : '',
+        health: ['Established', 'Developing', 'Watch', 'Distressed', 'Removed'].includes(get('health')) ? get('health') : '',
         sort: get('sort') || 'newest',
         page: Math.max(1, Number(get('page')) || 1),
     };

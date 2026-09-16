@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router';
-import { Database, Home, Map, Search, UserRound } from 'lucide-react';
+import { Briefcase, Database, Home, Map, Search, UserRound } from 'lucide-react';
 import BrandMark from './BrandMark';
 import SearchBar from './SearchBar';
 import { SITE_NAME, SITE_TAGLINE, formatDate } from '../lib/site';
@@ -8,9 +8,19 @@ import { SITE_NAME, SITE_TAGLINE, formatDate } from '../lib/site';
 const NAV = [
     { to: '/', label: 'Overview', icon: Home, end: true },
     { to: '/search', label: 'Company Search', icon: Search, end: false },
+    { to: '/industries', label: 'Industries', icon: Briefcase, end: false },
     { to: '/map', label: 'Map Explorer', icon: Map, end: false },
     { to: '/job-seekers', label: 'Job Seeker Insights', icon: UserRound, end: false },
     { to: '/data-sources', label: 'Data Sources', icon: Database, end: false },
+];
+
+const FOOTER_LINKS = [
+    { to: '/industries', label: 'Industries' },
+    { to: '/locations', label: 'Regions and cities' },
+    { to: '/new-companies', label: 'New companies by month' },
+    { to: '/insolvencies', label: 'Insolvencies by month' },
+    { to: '/health-indicator', label: 'Company Health Indicator' },
+    { to: '/data-sources', label: 'About the data' },
 ];
 
 /** Top bar, side navigation and the content area every public page sits in. */
@@ -88,9 +98,14 @@ export default function AppShell({ children, asAt, importedAt }: { children: Rea
                         ))}
                     </nav>
                     <main className="p-4 sm:p-6 lg:p-8 max-w-[1600px]">{children}</main>
-                    <footer className="px-4 sm:px-6 lg:px-8 pb-8 text-xs text-ink-faint">
-                        Data: New Zealand Companies Office and NZBN register bulk data{asAt ? `, as at ${formatDate(asAt)}` : ''}{importedAt ? ` (loaded ${formatDate(importedAt.slice(0, 10))})` : ''}.
-                        {' '}{SITE_NAME} is not affiliated with the Companies Office. <Link to="/data-sources" className="underline hover:text-ink">About the data</Link>.
+                    <footer className="px-4 sm:px-6 lg:px-8 pb-8 text-xs text-ink-faint space-y-2">
+                        <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="More pages">
+                            {FOOTER_LINKS.map(link => <Link key={link.to} to={link.to} className="hover:text-ink">{link.label}</Link>)}
+                        </nav>
+                        <p>
+                            Data: New Zealand Companies Office and NZBN register bulk data{asAt ? `, as at ${formatDate(asAt)}` : ''}{importedAt ? ` (loaded ${formatDate(importedAt.slice(0, 10))})` : ''}.
+                            {' '}{SITE_NAME} is not affiliated with the Companies Office.
+                        </p>
                     </footer>
                 </div>
             </div>

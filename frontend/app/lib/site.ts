@@ -9,11 +9,12 @@ export const DEFAULT_DESCRIPTION =
 // Māori macrons are common in company names; keep the letter rather than breaking the word.
 const MACRONS: Record<string, string> = { ā: 'a', ē: 'e', ī: 'i', ō: 'o', ū: 'u' };
 
-/** Must produce the same slug as company_slug() in backend/app/api/api_v1/endpoints/sitemap.py. */
-export function companySlug(name: string): string {
+/** Must produce the same slug as slugify() in backend/app/services/site_stats.py. */
+export function slugify(name: string): string {
     const slug = (name || '')
         .toLowerCase()
         .replace(/[āēīōū]/g, letter => MACRONS[letter])
+        .replace(/['’]/g, '')
         .replace(/&/g, ' and ')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
@@ -21,8 +22,20 @@ export function companySlug(name: string): string {
         .replace(/-+$/g, '');
     return slug || 'company';
 }
+export const companySlug = slugify;
 
-export const companyPath = (nzbn: string, name: string) => `/companies/${nzbn}/${companySlug(name)}`;
+export const companyPath = (nzbn: string, name: string) => `/companies/${nzbn}/${slugify(name)}`;
+export const regionPath = (region: string) => `/locations/${slugify(region)}`;
+export const cityPath = (region: string, city: string) => `/locations/${slugify(region)}/${slugify(city)}`;
+export const monthPath = (month: string) => `/new-companies/${month}`;
+export const insolvencyMonthPath = (month: string) => `/insolvencies/${month}`;
+
+/** "2026-08" -> "2026-07"; "2026-01" -> "2025-12". */
+export function shiftMonth(yyyyMm: string, delta: number): string {
+    const [year, month] = yyyyMm.split('-').map(Number);
+    const index = year * 12 + (month - 1) + delta;
+    return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
+}
 export const absoluteUrl = (path: string) => `${SITE_URL}${path}`;
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

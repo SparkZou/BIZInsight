@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -115,7 +117,11 @@ BROWSE_SORTS = {
     "newest": "registration_date DESC NULLS LAST, nzbn",
     "oldest": "registration_date ASC NULLS LAST, nzbn",
     "name": "entity_name, nzbn",
+    "health": "health_score DESC NULLS LAST, registration_date DESC NULLS LAST, nzbn",
+    "insolvency": "insolvency_date DESC NULLS LAST, nzbn",
 }
+HEALTH_LABELS = {"Established", "Developing", "Watch", "Distressed", "Removed"}
+MONTH = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 
 
 @router.get("/browse")
@@ -127,6 +133,9 @@ def browse_companies(
     status: str = "",
     city: str = "",
     website: Optional[bool] = None,
+    health: str = "",
+    month: str = "",
+    insolvency_month: str = "",
     sort: str = "newest",
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -135,11 +144,25 @@ def browse_companies(
 ):
     """
     Filtered, paginated list over company_index (built after each bulk data import). q matches
-    the company name anywhere, or an exact NZBN / company number. count=false skips the total
-    (a scan of every matching row) for lists that only show the first few.
+    the company name anywhere, or an exact NZBN / company number; month (YYYY-MM) is the
+    registration month and insolvency_month the month of the latest insolvency appointment.
+    count=false skips the total (a scan of every matching row) for lists that only show the
+    first few.
     """
     where = ["true"]
     params: Dict[str, Any] = {"limit": page_size, "offset": (page - 1) * page_size}
+    if health:
+        if health not in HEALTH_LABELS:
+            raise HTTPException(status_code=400, detail=f"health must be one of: {', '.join(sorted(HEALTH_LABELS))}")
+        where.append("health_label = :health")
+        params["health"] = health
+    for column, value in (("registration_date", month), ("insolvency_date", insolvency_month)):
+        if value:
+            if not MONTH.match(value):
+                raise HTTPException(status_code=400, detail="month must look like 2026-08")
+            # CAST(...) rather than ::date - SQLAlchemy's bind-parameter parser trips over ":name::date".
+            where.append(f"{column} >= CAST(:{column}_from AS date) AND {column} < CAST(:{column}_from AS date) + interval '1 month'")
+            params[f"{column}_from"] = f"{value}-01"
     q = q.strip()
     if q:
         if q.isdigit():
@@ -177,7 +200,8 @@ def browse_companies(
                nzbn, entity_name AS name, company_identifier, entity_type AS type, entity_status AS status,
                registration_date, removal_date, division, industry_code, industry, city, region,
                website, trading_name, director_count, shareholder_count, corporate_shareholder,
-               insolvency_count, insolvency_type, insolvency_date
+               insolvency_count, insolvency_type, insolvency_date,
+               health_score, health_label, pts_age, pts_status, pts_insolvency, pts_directors, pts_ownership, pts_presence
         FROM company_index
         WHERE {' AND '.join(where)}
         ORDER BY {order}

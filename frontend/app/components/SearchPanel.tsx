@@ -3,6 +3,7 @@ import { Form, Link, useSubmit } from 'react-router';
 import {
     ArrowRight, Building2, ChevronLeft, ChevronRight, ExternalLink, Globe, MapPin, Search, Users, X
 } from 'lucide-react';
+import HealthPill from './HealthPill';
 import StatusPill from './StatusPill';
 import { DIVISION_SHORT, ENTITY_TYPE_NAMES, browseQuery, type BrowseFilters, type BrowseResponse, type CompanyRow } from '../lib/api';
 import { companyPath, formatDate, formatNumber } from '../lib/site';
@@ -13,6 +14,7 @@ export interface SearchOptions {
 }
 
 const STATUSES = ['Registered', 'In Liquidation', 'In Receivership', 'Voluntary Administration', 'Removed'];
+const HEALTH = ['Established', 'Developing', 'Watch', 'Distressed'];
 
 const websiteHref = (site: string) => (site.startsWith('http') ? site : `https://${site}`);
 
@@ -67,10 +69,18 @@ function FilterForm({ filters, options, action }: { filters: BrowseFilters; opti
                     <input name="city" defaultValue={filters.city ?? ''} placeholder="e.g. Hamilton" className="field" />
                 </label>
                 <label className="block">
+                    <span className="block text-xs text-ink-muted mb-1">Health indicator</span>
+                    <select name="health" defaultValue={filters.health ?? ''} className={select}>
+                        <option value="">Any</option>
+                        {HEALTH.map(label => <option key={label} value={label}>{label}</option>)}
+                    </select>
+                </label>
+                <label className="block">
                     <span className="block text-xs text-ink-muted mb-1">Sort</span>
                     <select name="sort" defaultValue={filters.sort ?? 'newest'} className={select}>
                         <option value="newest">Newest first</option>
                         <option value="oldest">Oldest first</option>
+                        <option value="health">Health score</option>
                         <option value="name">Name A-Z</option>
                     </select>
                 </label>
@@ -91,6 +101,7 @@ function ActiveFilters({ filters, options, action }: { filters: BrowseFilters; o
     if (filters.entity_type) labels.push(['entity_type', ENTITY_TYPE_NAMES[filters.entity_type] ?? filters.entity_type]);
     if (filters.status) labels.push(['status', filters.status]);
     if (filters.website) labels.push(['website', filters.website === 'true' ? 'Has a website' : 'No website']);
+    if (filters.health) labels.push(['health', `Health: ${filters.health}`]);
     if (labels.length === 0) return null;
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -111,7 +122,7 @@ function Preview({ company }: { company: CompanyRow }) {
                 <div className="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0"><Building2 className="w-5 h-5" /></div>
                 <div className="min-w-0">
                     <h3 className="font-semibold leading-snug">{company.name}</h3>
-                    <div className="mt-1.5"><StatusPill status={company.status} /></div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5"><StatusPill status={company.status} /><HealthPill label={company.health_label} score={company.health_score} /></div>
                 </div>
             </div>
             <dl className="mt-4 space-y-2 text-sm">
@@ -191,6 +202,7 @@ export default function SearchPanel({ filters, options, result, action = '/searc
                                     <th className="py-2 px-2 font-medium">Industry</th>
                                     <th className="py-2 px-2 font-medium">Website</th>
                                     <th className="py-2 px-2 font-medium">Status</th>
+                                    <th className="py-2 px-2 font-medium">Health</th>
                                     <th className="py-2 px-2 font-medium">Registered</th>
                                     <th className="py-2 px-1"></th>
                                 </tr>
@@ -212,6 +224,7 @@ export default function SearchPanel({ filters, options, result, action = '/searc
                                             {row.website ? <a href={websiteHref(row.website)} target="_blank" rel="noopener noreferrer nofollow" onClick={e => e.stopPropagation()} className="text-brand-600 hover:underline flex items-center gap-1 truncate"><ExternalLink className="w-3 h-3 shrink-0" /><span className="truncate">{row.website.replace(/^https?:\/\/(www\.)?/, '')}</span></a> : <span className="text-ink-faint">-</span>}
                                         </td>
                                         <td className="py-2.5 px-2"><StatusPill status={row.status} /></td>
+                                        <td className="py-2.5 px-2"><HealthPill label={row.health_label} /></td>
                                         <td className="py-2.5 px-2 text-ink-2 whitespace-nowrap tabular">{row.registration_date?.slice(0, 4) ?? '-'}</td>
                                         <td className="py-2.5 px-1 text-ink-faint"><ChevronRight className="w-4 h-4" /></td>
                                     </tr>

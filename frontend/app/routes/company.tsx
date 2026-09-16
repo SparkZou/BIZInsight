@@ -6,13 +6,24 @@ import {
     AlertTriangle, ArrowRight, Briefcase, Building2, Calendar, CheckCircle, ExternalLink, Globe, MapPin, PieChart, Scale, Users
 } from 'lucide-react';
 import AppShell from '../components/AppShell';
+import HealthPill from '../components/HealthPill';
 import InfoCard from '../components/InfoCard';
 import StatusPill from '../components/StatusPill';
 import { DIVISION_SHORT, ENTITY_TYPE_NAMES, apiFetch, apiJson, browseQuery, type BrowseResponse, type CompanyRow, type DatasetSummary } from '../lib/api';
-import { SITE_NAME, absoluteUrl, companyPath, companySlug, formatDate, formatNumber, pageMeta } from '../lib/site';
+import { SITE_NAME, absoluteUrl, cityPath, companyPath, companySlug, formatDate, formatNumber, pageMeta, regionPath, slugify } from '../lib/site';
 import type { Address, CompanyDetails } from '../types/company';
 
 const NO_VALUE = new Set(['', 'No trading name', 'No website']);
+
+const HEALTH_FACTORS: { key: 'pts_age' | 'pts_status' | 'pts_insolvency' | 'pts_directors' | 'pts_ownership' | 'pts_presence'; name: string; max: number }[] = [
+    { key: 'pts_age', name: 'Age on the register', max: 30 },
+    { key: 'pts_status', name: 'Register status', max: 25 },
+    { key: 'pts_insolvency', name: 'Insolvency history', max: 15 },
+    { key: 'pts_directors', name: 'Directors', max: 12 },
+    { key: 'pts_ownership', name: 'Ownership', max: 8 },
+    { key: 'pts_presence', name: 'Presence', max: 10 },
+];
+const divisionSlug = (code: string) => `${code.toLowerCase()}-${slugify(DIVISION_SHORT[code] ?? code)}`;
 
 export async function loader({ params }: LoaderFunctionArgs) {
     const nzbn = params.nzbn || '';
@@ -86,7 +97,7 @@ export const meta: MetaFunction<typeof loader> = ({ data: loaded }) => {
             '@type': 'BreadcrumbList',
             itemListElement: [
                 { '@type': 'ListItem', position: 1, name: 'Companies', item: absoluteUrl('/search') },
-                ...(summary?.region ? [{ '@type': 'ListItem', position: 2, name: summary.region, item: absoluteUrl(`/map?region=${encodeURIComponent(summary.region)}`) }] : []),
+                ...(summary?.region ? [{ '@type': 'ListItem', position: 2, name: summary.region, item: absoluteUrl(regionPath(summary.region)) }] : []),
                 { '@type': 'ListItem', position: summary?.region ? 3 : 2, name: company.ENTITY_NAME, item: absoluteUrl(path) },
             ],
         }],
@@ -141,8 +152,8 @@ export default function CompanyPage() {
         <AppShell asAt={dataset.as_at} importedAt={dataset.imported_at}>
             <nav className="text-xs text-ink-muted mb-3 flex flex-wrap items-center gap-1.5" aria-label="Breadcrumb">
                 <Link to="/search" className="hover:text-ink">Companies</Link>
-                {summary?.region && <><span>/</span><Link to={`/map?region=${encodeURIComponent(summary.region)}`} className="hover:text-ink">{summary.region}</Link></>}
-                {summary?.division && <><span>/</span><Link to={`/search?${browseQuery({ division: summary.division, status: 'Registered' })}`} className="hover:text-ink">{DIVISION_SHORT[summary.division] ?? summary.division}</Link></>}
+                {summary?.region && <><span>/</span><Link to={regionPath(summary.region)} className="hover:text-ink">{summary.region}</Link></>}
+                {summary?.division && <><span>/</span><Link to={`/industries/${divisionSlug(summary.division)}`} className="hover:text-ink">{DIVISION_SHORT[summary.division] ?? summary.division}</Link></>}
                 <span>/</span><span className="text-ink truncate max-w-[16rem]">{company.ENTITY_NAME}</span>
             </nav>
 
@@ -321,6 +332,35 @@ export default function CompanyPage() {
                 </div>
 
                 <aside className="space-y-4 xl:sticky xl:top-20">
+                    {summary && (
+                        <section className="card p-5">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <h2 className="text-sm font-semibold">Company Health Indicator</h2>
+                                    <p className="text-xs text-ink-muted">From register facts only</p>
+                                </div>
+                                <HealthPill label={summary.health_label} />
+                            </div>
+                            {summary.health_label === 'Removed' ? (
+                                <p className="text-sm text-ink-muted mt-3">Not scored: the company has been removed from the register.</p>
+                            ) : (
+                                <>
+                                    <p className="mt-3"><span className="text-3xl font-bold tabular">{summary.health_score}</span><span className="text-ink-muted text-sm"> / 100</span></p>
+                                    <ul className="mt-3 space-y-2">
+                                        {HEALTH_FACTORS.map(factor => (
+                                            <li key={factor.key} className="text-xs">
+                                                <div className="flex justify-between gap-2 text-ink-2"><span>{factor.name}</span><span className="tabular text-ink-muted">{summary[factor.key]} / {factor.max}</span></div>
+                                                <div className="h-1.5 rounded-full bg-canvas mt-1 overflow-hidden"><div className="h-full rounded-full bg-brand-500" style={{ width: `${(summary[factor.key] / factor.max) * 100}%` }} /></div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </>
+                            )}
+                            <p className="text-xs text-ink-muted mt-3">
+                                <Link to="/health-indicator" className="text-brand-600 hover:underline">How this is computed</Link> · <Link to="/data-sources" className="text-brand-600 hover:underline">Report an issue</Link>
+                            </p>
+                        </section>
+                    )}
                     <section className="card p-5">
                         <h2 className="text-sm font-semibold mb-3">At a glance</h2>
                         <dl className="text-sm space-y-2.5">
@@ -337,11 +377,12 @@ export default function CompanyPage() {
                             <h2 className="text-sm font-semibold mb-3">Explore similar companies</h2>
                             <ul className="text-sm space-y-2">
                                 {summary.division && summary.region && (
-                                    <li><Link to={`/search?${browseQuery({ division: summary.division, region: summary.region, status: 'Registered' })}`} className="text-brand-600 hover:underline inline-flex items-center gap-1">{DIVISION_SHORT[summary.division] ?? summary.division} companies in {summary.region} <ArrowRight className="w-3.5 h-3.5" /></Link></li>
+                                    <li><Link to={`/industries/${divisionSlug(summary.division)}/${slugify(summary.region)}`} className="text-brand-600 hover:underline inline-flex items-center gap-1">{DIVISION_SHORT[summary.division] ?? summary.division} companies in {summary.region} <ArrowRight className="w-3.5 h-3.5" /></Link></li>
                                 )}
-                                {summary.city && <li><Link to={`/search?${browseQuery({ city: summary.city, status: 'Registered' })}`} className="text-brand-600 hover:underline inline-flex items-center gap-1">Companies in {summary.city} <ArrowRight className="w-3.5 h-3.5" /></Link></li>}
-                                {summary.division && <li><Link to={`/job-seekers?division=${summary.division}`} className="text-brand-600 hover:underline inline-flex items-center gap-1">{DIVISION_SHORT[summary.division] ?? summary.division}: industry outlook <ArrowRight className="w-3.5 h-3.5" /></Link></li>}
-                                {summary.region && <li><Link to={`/map?region=${encodeURIComponent(summary.region)}`} className="text-brand-600 hover:underline inline-flex items-center gap-1">{summary.region} on the map <ArrowRight className="w-3.5 h-3.5" /></Link></li>}
+                                {summary.city && summary.region && <li><Link to={cityPath(summary.region, summary.city)} className="text-brand-600 hover:underline inline-flex items-center gap-1">Companies in {summary.city} <ArrowRight className="w-3.5 h-3.5" /></Link></li>}
+                                {summary.division && <li><Link to={`/industries/${divisionSlug(summary.division)}`} className="text-brand-600 hover:underline inline-flex items-center gap-1">{DIVISION_SHORT[summary.division] ?? summary.division} across New Zealand <ArrowRight className="w-3.5 h-3.5" /></Link></li>}
+                                {summary.region && <li><Link to={regionPath(summary.region)} className="text-brand-600 hover:underline inline-flex items-center gap-1">All companies in {summary.region} <ArrowRight className="w-3.5 h-3.5" /></Link></li>}
+                                {summary.registration_date && <li><Link to={`/new-companies/${summary.registration_date.slice(0, 7)}`} className="text-brand-600 hover:underline inline-flex items-center gap-1">Registered the same month <ArrowRight className="w-3.5 h-3.5" /></Link></li>}
                             </ul>
                         </section>
                     )}

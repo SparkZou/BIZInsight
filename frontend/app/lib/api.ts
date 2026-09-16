@@ -84,7 +84,17 @@ export interface CompanyRow {
     insolvency_count: number;
     insolvency_type: string | null;
     insolvency_date: string | null;
+    health_score: number;
+    health_label: HealthLabel;
+    pts_age: number;
+    pts_status: number;
+    pts_insolvency: number;
+    pts_directors: number;
+    pts_ownership: number;
+    pts_presence: number;
 }
+
+export type HealthLabel = 'Established' | 'Developing' | 'Watch' | 'Distressed' | 'Removed';
 
 export interface BrowseResponse {
     total: number;
@@ -101,6 +111,11 @@ export interface BrowseFilters {
     status?: string;
     city?: string;
     website?: '' | 'true' | 'false';
+    health?: string;
+    /** Registration month, YYYY-MM. */
+    month?: string;
+    /** Month of the latest insolvency appointment, YYYY-MM. */
+    insolvency_month?: string;
     sort?: string;
     page?: number;
     page_size?: number;
@@ -116,35 +131,61 @@ export function browseQuery(filters: BrowseFilters): string {
     return params.toString();
 }
 
+export interface RegionStats {
+    region: string; slug: string | null; live: number; last12: number; prior12: number; with_website: number;
+    liquidations_last12: number; established: number;
+    top_cities: { city: string; slug: string; live: number }[]; top_divisions: { code: string; name: string; live: number }[];
+}
+
+export interface DivisionStats {
+    code: string; name: string; short: string; slug: string; live: number; last12: number; prior12: number; liquidations_last12: number;
+    live_10y_plus: number; with_website: number; established: number; avg_health: number | null;
+    liquidations_per_1000: number | null; established_share: number | null;
+    top_classes: { code: string; description: string; live: number }[];
+    regions: { region: string; slug: string; live: number; last12: number; prior12: number }[];
+}
+
+export interface CityStats {
+    city: string; slug: string; region: string; region_slug: string; live: number; last12: number; prior12: number; with_website: number;
+    top_divisions: { code: string; name: string; live: number }[];
+}
+
+export interface MonthStats {
+    month: string; registrations: number; removals: number; complete: boolean;
+    by_region: { region: string; live: number }[]; by_division: { code: string; name: string; live: number }[];
+}
+
+export interface InsolvencyMonthStats {
+    month: string; total: number; liquidation: number; receivership: number; voluntary_administration: number; companies: number; complete: boolean;
+    by_division: { code: string; name: string; companies: number }[]; by_region: { region: string; companies: number }[];
+}
+
 /** Everything in the site_stats table, as returned by GET /api/v1/insights. */
 export interface Insights {
     computed_at: string;
     division_names: Record<string, string>;
     region_names: string[];
+    health_factors: Record<string, number>;
     overview: {
         as_at: string; window_end: string; total: number; live: number; registered: number; removed: number; distressed: number;
         registered_last12: number; registered_prior12: number; removed_last12: number; removed_prior12: number;
         live_with_website: number; live_with_industry: number; liquidations_last12: number; cities: number; regions: number; divisions: number;
     };
-    regions: {
-        region: string; live: number; last12: number; prior12: number; with_website: number;
-        top_cities: { city: string; live: number }[]; top_divisions: { code: string; name: string; live: number }[];
-    }[];
-    divisions: {
-        code: string; name: string; live: number; last12: number; prior12: number; liquidations_last12: number;
-        live_10y_plus: number; with_website: number; liquidations_per_1000: number | null; established_share: number | null;
-    }[];
+    regions: RegionStats[];
+    divisions: DivisionStats[];
     top_industries: { code: string; description: string; live: number }[];
     years: { year: number; registrations: number; removals: number }[];
-    months: { month: string; registrations: number; removals: number }[];
+    months: MonthStats[];
     directors: { bucket: string; live: number }[];
     ownership: { kind: 'individual' | 'corporate' | 'none'; live: number }[];
     shareholders: { bucket: string; live: number }[];
     age: { bucket: string; live: number }[];
-    cities: { city: string; region: string | null; live: number }[];
+    health: { label: HealthLabel; live: number }[];
+    cities: CityStats[];
     entity_types: { type: string; live: number }[];
     status_mix: { status: string; companies: number }[];
     insolvency_years?: { year: number; liquidation: number; receivership: number; voluntary_administration: number }[];
+    insolvency_months?: InsolvencyMonthStats[];
     newest: { nzbn: string; entity_name: string; entity_status: string; registration_date: string; city: string | null; region: string | null; division: string | null; industry: string | null }[];
 }
 
