@@ -66,13 +66,16 @@ interface CompanyRow {
 const monthLabel = (month: string) =>
     new Date(`${month}-01T00:00:00`).toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
 
+const websiteOf = (company: CompanyRow) => company.website || company.nzbn_websites?.split('; ')[0] || null;
+const firstEmail = (company: CompanyRow) => company.emails?.split('; ')[0] || null;
+
 const Blank = () => <span className="text-gray-600">-</span>;
 
 function StatCard({ label, value, detail }: { label: string; value: string; detail?: string }) {
     return (
-        <div className="glass-card p-5 rounded-xl">
+        <div className="glass-card p-4 sm:p-5 rounded-xl">
             <p className="text-sm text-gray-400">{label}</p>
-            <p className="text-2xl font-bold text-white mt-1 truncate" title={value}>{value}</p>
+            <p className="text-xl sm:text-2xl font-bold text-white mt-1 truncate" title={value}>{value}</p>
             {detail && <p className="text-xs text-gray-500 mt-1 truncate" title={detail}>{detail}</p>}
         </div>
     );
@@ -97,6 +100,27 @@ function RankedList({ title, icon: Icon, items, className = '' }: { title: strin
                 ))}
             </ul>
         </section>
+    );
+}
+
+/** Phone and email, on one line each, for the table and the phone card. */
+function ContactCell({ company }: { company: CompanyRow }) {
+    if (!company.contact_fetched_at) return <Blank />;
+    if (!company.phones && !company.emails) return <span className="text-xs text-gray-500">None listed</span>;
+    return (
+        <>
+            {company.phones && <p className="truncate text-gray-300 font-mono" title={company.phones}>{company.phones}</p>}
+            {company.emails && (
+                <a
+                    href={`mailto:${firstEmail(company)}`}
+                    onClick={e => e.stopPropagation()}
+                    className="block truncate text-neon-blue hover:underline"
+                    title={company.emails}
+                >
+                    {company.emails}
+                </a>
+            )}
+        </>
     );
 }
 
@@ -184,17 +208,17 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2">New companies</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">New companies</h1>
                     <p className="text-gray-400">
                         Companies registered {month ? <>in <span className="text-white">{monthLabel(month)}</span></> : 'by month'}.
-                        Click a company to see everything recorded against it.
+                        Tap a company to see everything recorded against it.
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <select
                         value={month}
                         onChange={e => { setMonth(e.target.value); setPage(1); setStatus(''); setContact(''); }}
-                        className="px-4 py-2.5 bg-dark-card border border-dark-border rounded-lg text-sm outline-none focus:ring-2 focus:ring-neon-blue"
+                        className="flex-1 sm:flex-none px-4 py-2.5 bg-dark-card border border-dark-border rounded-lg text-sm outline-none focus:ring-2 focus:ring-neon-blue"
                     >
                         {months.map(option => (
                             <option key={option.month} value={option.month}>
@@ -215,7 +239,7 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
 
             {summary && (
                 <>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                         <StatCard label="Registered" value={summary.total.toLocaleString()} detail={monthLabel(summary.month)} />
                         <StatCard
                             label="Still registered"
@@ -241,15 +265,15 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                 />
             )}
 
-            <section className="glass-panel rounded-2xl p-5 space-y-4">
+            <section className="glass-panel rounded-2xl p-4 sm:p-5 space-y-4">
                 <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-                    <form onSubmit={applySearch} className="flex-1 flex gap-2 min-w-[16rem]">
+                    <form onSubmit={applySearch} className="flex-1 flex gap-2 min-w-[14rem]">
                         <div className="relative flex-1">
                             <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
                             <input
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
-                                placeholder={month ? `Company name or NZBN, registered in ${monthLabel(month)}` : 'Company name or NZBN'}
+                                placeholder={month ? `Name or NZBN, in ${monthLabel(month)}` : 'Company name or NZBN'}
                                 className="w-full pl-9 pr-9 py-2.5 bg-dark-bg/50 border border-dark-border rounded-lg text-sm outline-none focus:ring-2 focus:ring-neon-blue"
                             />
                             {search && (
@@ -284,86 +308,98 @@ export default function NewCompaniesPage({ onSessionExpired }: { onSessionExpire
                 {loading ? <LoadingSpinner /> : companies.length === 0 ? (
                     <p className="text-gray-500 text-sm py-8 text-center">No companies match.</p>
                 ) : (
-                    <div className="overflow-x-auto">
-                        {/* Wider screens show more columns; the detail panel always has everything. */}
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-gray-400 border-b border-dark-border">
-                                <tr>
-                                    <th className="py-2 pr-4 font-medium">Registered</th>
-                                    <th className="py-2 pr-4 font-medium">Company</th>
-                                    <th className="py-2 pr-4 font-medium hidden xl:table-cell">Type</th>
-                                    <th className="py-2 pr-4 font-medium">Industry</th>
-                                    <th className="py-2 pr-4 font-medium">City</th>
-                                    <th className="py-2 pr-4 font-medium hidden 2xl:table-cell">Registered office</th>
-                                    <th className="py-2 pr-4 font-medium">Directors</th>
-                                    <th className="py-2 pr-4 font-medium text-right">Shareholders</th>
-                                    <th className="py-2 pr-4 font-medium">Contact</th>
-                                    <th className="py-2 pr-4 font-medium hidden 2xl:table-cell">GST</th>
-                                    <th className="py-2 pr-4 font-medium hidden 2xl:table-cell">Website</th>
-                                    <th className="py-2 font-medium">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-dark-border">
-                                {companies.map(company => {
-                                    const website = company.website || company.nzbn_websites?.split('; ')[0] || null;
-                                    return (
-                                        <tr key={company.nzbn} onClick={() => setSelectedNzbn(company.nzbn)} className="cursor-pointer hover:bg-white/5 align-top">
-                                            <td className="py-3 pr-4 whitespace-nowrap text-gray-400">{company.registration_date}</td>
-                                            <td className="py-3 pr-4 min-w-[14rem]">
-                                                <p className="font-medium text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-neon-blue shrink-0" />{company.entity_name}</p>
-                                                <p className="text-xs text-gray-500 font-mono mt-0.5">{company.nzbn}</p>
-                                                {company.trading_name && <p className="text-xs text-gray-400 mt-0.5">Trading as {company.trading_name}</p>}
-                                            </td>
-                                            <td className="py-3 pr-4 text-gray-300 whitespace-nowrap hidden xl:table-cell">{company.entity_type || <Blank />}</td>
-                                            <td className="py-3 pr-4 text-gray-300 max-w-[16rem] 2xl:max-w-[22rem]">{company.industry || <Blank />}</td>
-                                            <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">{company.city || <Blank />}</td>
-                                            <td className="py-3 pr-4 text-gray-300 max-w-[20rem] hidden 2xl:table-cell">{company.registered_office || <Blank />}</td>
-                                            <td className="py-3 pr-4 text-gray-300 max-w-[16rem] 2xl:max-w-[22rem]">
-                                                <p className="truncate" title={company.directors ?? ''}>{company.directors || <Blank />}</p>
-                                                {company.director_count > 1 && <p className="text-xs text-gray-500">{company.director_count} directors</p>}
-                                            </td>
-                                            <td className="py-3 pr-4 text-right font-mono">{company.shareholder_count}</td>
-                                            <td className="py-3 pr-4 max-w-[16rem]">
-                                                {!company.contact_fetched_at ? <Blank /> : company.phones || company.emails ? (
-                                                    <>
-                                                        {company.phones && <p className="truncate text-gray-300 font-mono" title={company.phones}>{company.phones}</p>}
-                                                        {company.emails && (
-                                                            <a
-                                                                href={`mailto:${company.emails.split('; ')[0]}`}
-                                                                onClick={e => e.stopPropagation()}
-                                                                className="block truncate text-neon-blue hover:underline"
-                                                                title={company.emails}
-                                                            >
-                                                                {company.emails}
-                                                            </a>
-                                                        )}
-                                                    </>
-                                                ) : <span className="text-xs text-gray-500">None listed</span>}
-                                            </td>
-                                            <td className="py-3 pr-4 font-mono text-gray-300 whitespace-nowrap hidden 2xl:table-cell">{company.gst_number || <Blank />}</td>
-                                            <td className="py-3 pr-4 max-w-[14rem] hidden 2xl:table-cell">
-                                                {website ? (
-                                                    <a
-                                                        href={website.startsWith('http') ? website : `https://${website}`}
-                                                        target="_blank" rel="noopener noreferrer"
-                                                        onClick={e => e.stopPropagation()}
-                                                        className="block truncate text-neon-blue hover:underline"
-                                                        title={website}
-                                                    >
-                                                        {website.replace(/^https?:\/\//, '')}
-                                                    </a>
-                                                ) : <Blank />}
-                                            </td>
-                                            <td className="py-3"><StatusPill status={company.entity_status} /></td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                    <>
+                        {/* Phones and narrow windows: one card per company. */}
+                        <ul className="md:hidden divide-y divide-dark-border">
+                            {companies.map(company => (
+                                <li key={company.nzbn}>
+                                    <button onClick={() => setSelectedNzbn(company.nzbn)} className="w-full text-left py-4 space-y-1">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <p className="font-medium text-white">{company.entity_name}</p>
+                                            <StatusPill status={company.entity_status} />
+                                        </div>
+                                        <p className="text-xs text-gray-500 font-mono">{company.nzbn} · {company.registration_date}</p>
+                                        {company.trading_name && <p className="text-xs text-gray-400">Trading as {company.trading_name}</p>}
+                                        {company.industry && <p className="text-sm text-gray-300">{company.industry}</p>}
+                                        <p className="text-sm text-gray-400">
+                                            {[company.city, company.entity_type].filter(Boolean).join(' · ') || '-'}
+                                            {' · '}{company.director_count} director{company.director_count === 1 ? '' : 's'}
+                                        </p>
+                                        <div className="text-sm"><ContactCell company={company} /></div>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+
+                        {/* Tablets and up: a table that adds columns as the window gets wider. */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-gray-400 border-b border-dark-border">
+                                    <tr>
+                                        <th className="py-2 pr-4 font-medium">Registered</th>
+                                        <th className="py-2 pr-4 font-medium">Company</th>
+                                        <th className="py-2 pr-4 font-medium">Industry</th>
+                                        <th className="py-2 pr-4 font-medium">City</th>
+                                        <th className="py-2 pr-4 font-medium hidden xl:table-cell">Directors</th>
+                                        <th className="py-2 pr-4 font-medium text-right hidden xl:table-cell">Shareholders</th>
+                                        <th className="py-2 pr-4 font-medium">Contact</th>
+                                        <th className="py-2 pr-4 font-medium hidden 2xl:table-cell">Type</th>
+                                        <th className="py-2 pr-4 font-medium hidden 2xl:table-cell">Registered office</th>
+                                        <th className="py-2 pr-4 font-medium hidden 2xl:table-cell">GST</th>
+                                        <th className="py-2 pr-4 font-medium hidden 2xl:table-cell">Website</th>
+                                        <th className="py-2 font-medium">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-dark-border align-top">
+                                    {companies.map(company => {
+                                        const website = websiteOf(company);
+                                        return (
+                                            <tr key={company.nzbn} onClick={() => setSelectedNzbn(company.nzbn)} className="cursor-pointer hover:bg-white/5">
+                                                <td className="py-3 pr-4 whitespace-nowrap text-gray-400">{company.registration_date}</td>
+                                                <td className="py-3 pr-4 max-w-[16rem]">
+                                                    <p className="font-medium text-white truncate" title={company.entity_name}>{company.entity_name}</p>
+                                                    <p className="text-xs text-gray-500 font-mono">{company.nzbn}</p>
+                                                    {company.trading_name && <p className="text-xs text-gray-400 truncate" title={company.trading_name}>Trading as {company.trading_name}</p>}
+                                                </td>
+                                                <td className="py-3 pr-4 text-gray-300 max-w-[14rem] 2xl:max-w-[18rem]">
+                                                    <p className="truncate" title={company.industry ?? ''}>{company.industry || <Blank />}</p>
+                                                </td>
+                                                <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">{company.city || <Blank />}</td>
+                                                <td className="py-3 pr-4 text-gray-300 max-w-[14rem] hidden xl:table-cell">
+                                                    <p className="truncate" title={company.directors ?? ''}>{company.directors || <Blank />}</p>
+                                                    {company.director_count > 1 && <p className="text-xs text-gray-500">{company.director_count} directors</p>}
+                                                </td>
+                                                <td className="py-3 pr-4 text-right font-mono hidden xl:table-cell">{company.shareholder_count}</td>
+                                                <td className="py-3 pr-4 max-w-[14rem]"><ContactCell company={company} /></td>
+                                                <td className="py-3 pr-4 text-gray-300 whitespace-nowrap hidden 2xl:table-cell">{company.entity_type || <Blank />}</td>
+                                                <td className="py-3 pr-4 text-gray-300 max-w-[16rem] hidden 2xl:table-cell">
+                                                    <p className="truncate" title={company.registered_office ?? ''}>{company.registered_office || <Blank />}</p>
+                                                </td>
+                                                <td className="py-3 pr-4 font-mono text-gray-300 whitespace-nowrap hidden 2xl:table-cell">{company.gst_number || <Blank />}</td>
+                                                <td className="py-3 pr-4 max-w-[12rem] hidden 2xl:table-cell">
+                                                    {website ? (
+                                                        <a
+                                                            href={website.startsWith('http') ? website : `https://${website}`}
+                                                            target="_blank" rel="noopener noreferrer"
+                                                            onClick={e => e.stopPropagation()}
+                                                            className="block truncate text-neon-blue hover:underline"
+                                                            title={website}
+                                                        >
+                                                            {website.replace(/^https?:\/\//, '')}
+                                                        </a>
+                                                    ) : <Blank />}
+                                                </td>
+                                                <td className="py-3"><StatusPill status={company.entity_status} /></td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
 
-                <div className="flex items-center justify-between text-sm text-gray-400">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-400">
                     <span>{firstRow.toLocaleString()}-{Math.min(page * PAGE_SIZE, total).toLocaleString()} of {total.toLocaleString()}</span>
                     <div className="flex items-center gap-2">
                         <button onClick={() => setPage(p => p - 1)} disabled={page <= 1} className="p-2 rounded-lg border border-dark-border hover:bg-white/5 disabled:opacity-30" aria-label="Previous page">

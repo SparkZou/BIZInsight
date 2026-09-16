@@ -64,7 +64,7 @@ export default function CompanySearchPage({ onSessionExpired }: { onSessionExpir
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold mb-2">Company search</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2">Company search</h1>
                 <p className="text-gray-400">
                     Search every register in the bulk data - companies, incorporated societies and limited partnerships,
                     charitable trust boards, sole traders and trusts, and public sector entities - by name, NZBN or company number,
@@ -72,8 +72,8 @@ export default function CompanySearchPage({ onSessionExpired }: { onSessionExpir
                 </p>
             </div>
 
-            <form onSubmit={submit} className="glass-panel rounded-2xl p-5 space-y-3">
-                <div className="flex gap-2">
+            <form onSubmit={submit} className="glass-panel rounded-2xl p-4 sm:p-5 space-y-3">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-1">
                         <Search className="w-5 h-5 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
                         <input
@@ -100,51 +100,74 @@ export default function CompanySearchPage({ onSessionExpired }: { onSessionExpir
             {error && <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-sm">{error}</div>}
 
             {query && (
-                <section className="glass-panel rounded-2xl p-5 space-y-4">
-                    <div className="flex items-center justify-between text-sm text-gray-400">
+                <section className="glass-panel rounded-2xl p-4 sm:p-5 space-y-4">
+                    <div className="flex items-center justify-between gap-3 text-sm text-gray-400">
                         <span className="flex items-center gap-2">
                             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                             {loading ? 'Searching...' : `${total.toLocaleString()} ${total === 1 ? 'match' : 'matches'} for "${query}"`}
                         </span>
-                        {total > PAGE_SIZE && <span>Page {page} of {pageCount}</span>}
+                        {total > PAGE_SIZE && <span className="whitespace-nowrap">Page {page} of {pageCount}</span>}
                     </div>
 
                     {!loading && results.length === 0 ? (
                         <p className="text-gray-500 text-sm py-8 text-center">Nothing found. Try part of the name, or the NZBN or company number.</p>
                     ) : (
-                        <div className={`overflow-x-auto ${loading ? 'opacity-50' : ''}`}>
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-gray-400 border-b border-dark-border">
-                                    <tr>
-                                        <th className="py-2 pr-4 font-medium">Name</th>
-                                        <th className="py-2 pr-4 font-medium">Register</th>
-                                        <th className="py-2 pr-4 font-medium">Status</th>
-                                        <th className="py-2 pr-4 font-medium">Registered</th>
-                                        <th className="py-2 font-medium">Matched on</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-dark-border">
-                                    {results.map(result => (
-                                        <tr key={result.nzbn} onClick={() => setSelectedNzbn(result.nzbn)} className="cursor-pointer hover:bg-white/5 align-top">
-                                            <td className="py-3 pr-4 min-w-[16rem]">
+                        <div className={loading ? 'opacity-50' : ''}>
+                            {/* Phones and narrow windows: one card per result. */}
+                            <ul className="md:hidden divide-y divide-dark-border">
+                                {results.map(result => (
+                                    <li key={result.nzbn}>
+                                        <button onClick={() => setSelectedNzbn(result.nzbn)} className="w-full text-left py-4 space-y-1">
+                                            <div className="flex items-start justify-between gap-3">
                                                 <p className="font-medium text-white">{result.entity_name || 'Unnamed'}</p>
-                                                <p className="text-xs text-gray-500 font-mono mt-0.5">
-                                                    NZBN {result.nzbn}{result.number && <> - No. {result.number}</>}
-                                                </p>
-                                            </td>
-                                            <td className="py-3 pr-4 text-gray-300">
-                                                {result.register}
-                                                {result.entity_type && <p className="text-xs text-gray-500">{result.entity_type}</p>}
-                                            </td>
-                                            <td className="py-3 pr-4"><StatusPill status={result.entity_status} /></td>
-                                            <td className="py-3 pr-4 text-gray-400 whitespace-nowrap">{result.registration_date || '-'}</td>
-                                            <td className="py-3 text-gray-400 max-w-[28rem]">
-                                                <p className="truncate" title={result.matched_on}>{result.matched_on}</p>
-                                            </td>
+                                                <StatusPill status={result.entity_status} />
+                                            </div>
+                                            <p className="text-xs text-gray-500 font-mono">
+                                                NZBN {result.nzbn}{result.number && ` · No. ${result.number}`}
+                                            </p>
+                                            <p className="text-sm text-gray-400">
+                                                {result.register}{result.registration_date && ` · registered ${result.registration_date}`}
+                                            </p>
+                                            <p className="text-sm text-gray-400">{result.matched_on}</p>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="text-gray-400 border-b border-dark-border">
+                                        <tr>
+                                            <th className="py-2 pr-4 font-medium">Name</th>
+                                            <th className="py-2 pr-4 font-medium">Register</th>
+                                            <th className="py-2 pr-4 font-medium">Status</th>
+                                            <th className="py-2 pr-4 font-medium hidden lg:table-cell">Registered</th>
+                                            <th className="py-2 font-medium">Matched on</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-dark-border align-top">
+                                        {results.map(result => (
+                                            <tr key={result.nzbn} onClick={() => setSelectedNzbn(result.nzbn)} className="cursor-pointer hover:bg-white/5">
+                                                <td className="py-3 pr-4 max-w-[20rem]">
+                                                    <p className="font-medium text-white truncate" title={result.entity_name}>{result.entity_name || 'Unnamed'}</p>
+                                                    <p className="text-xs text-gray-500 font-mono">
+                                                        NZBN {result.nzbn}{result.number && ` · No. ${result.number}`}
+                                                    </p>
+                                                </td>
+                                                <td className="py-3 pr-4 text-gray-300 max-w-[14rem]">
+                                                    <p className="truncate" title={result.register}>{result.register}</p>
+                                                    {result.entity_type && <p className="text-xs text-gray-500 truncate">{result.entity_type}</p>}
+                                                </td>
+                                                <td className="py-3 pr-4"><StatusPill status={result.entity_status} /></td>
+                                                <td className="py-3 pr-4 text-gray-400 whitespace-nowrap hidden lg:table-cell">{result.registration_date || '-'}</td>
+                                                <td className="py-3 text-gray-400 max-w-[24rem]">
+                                                    <p className="truncate" title={result.matched_on}>{result.matched_on}</p>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
 

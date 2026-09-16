@@ -17,16 +17,16 @@ const NAV_ITEMS = [
 
 // The admin pages are data-heavy, so they use the full window width on desktop screens and only
 // stop growing on very wide monitors, where lines would get too long to read.
-const PAGE_WIDTH = 'max-w-[2400px] mx-auto px-6 lg:px-10';
+const PAGE_WIDTH = 'max-w-[2400px] mx-auto px-4 sm:px-6 lg:px-10';
 
 function Header({ actions }: { actions?: ReactNode }) {
     return (
         <header className="glass-panel border-b border-dark-border/50">
-            <div className={`${PAGE_WIDTH} h-16 flex items-center justify-between`}>
-                <Link to="/" className="flex items-center gap-2">
-                    <BizInsightLogo className="w-7 h-7" />
-                    <span className="font-bold text-lg">Biz<span className="text-neon-blue">Insight</span></span>
-                    <span className="ml-2 px-2 py-0.5 text-xs font-semibold rounded bg-neon-purple/10 text-neon-purple border border-neon-purple/30">Admin</span>
+            <div className={`${PAGE_WIDTH} h-16 flex items-center justify-between gap-3`}>
+                <Link to="/" className="flex items-center gap-2 min-w-0">
+                    <BizInsightLogo className="w-7 h-7 shrink-0" />
+                    <span className="font-bold text-lg truncate">Biz<span className="text-neon-blue">Insight</span></span>
+                    <span className="ml-1 px-2 py-0.5 text-xs font-semibold rounded bg-neon-purple/10 text-neon-purple border border-neon-purple/30">Admin</span>
                 </Link>
                 {actions}
             </div>
@@ -62,11 +62,11 @@ export default function AdminPage() {
     return (
         <div className="min-h-screen bg-dark-bg text-white">
             <Header actions={
-                <button onClick={logout} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white">
+                <button onClick={logout} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white shrink-0">
                     <LogOut className="w-4 h-4" /> {username}
                 </button>
             } />
-            <div className={`${PAGE_WIDTH} py-8 flex flex-col lg:flex-row gap-8`}>
+            <div className={`${PAGE_WIDTH} py-6 lg:py-8 flex flex-col lg:flex-row gap-6 lg:gap-8`}>
                 <aside className="lg:w-60 shrink-0">
                     <nav className="glass-panel rounded-2xl p-2 flex lg:flex-col gap-1 lg:sticky lg:top-8 overflow-x-auto">
                         {NAV_ITEMS.map(item => (
@@ -85,6 +85,7 @@ export default function AdminPage() {
                         ))}
                     </nav>
                 </aside>
+                {/* min-w-0 keeps wide tables inside their own scroll area instead of stretching the page */}
                 <main className="flex-1 min-w-0">
                     <Routes>
                         <Route index element={<ImportPage onSessionExpired={sessionExpired} />} />
@@ -127,7 +128,7 @@ function LoginForm({ onLogin }: { onLogin: (username: string) => void }) {
     };
 
     return (
-        <form onSubmit={submit} className="glass-panel max-w-sm mx-auto mt-16 p-8 rounded-2xl space-y-5">
+        <form onSubmit={submit} className="glass-panel max-w-sm mx-4 sm:mx-auto mt-16 p-8 rounded-2xl space-y-5">
             <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-neon-blue/10 border border-neon-blue/20"><Lock className="w-5 h-5 text-neon-blue" /></div>
                 <h1 className="text-xl font-bold">Admin login</h1>
