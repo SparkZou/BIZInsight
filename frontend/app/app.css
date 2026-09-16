@@ -3,23 +3,47 @@
 @tailwind utilities;
 
 @layer base {
+    html {
+        @apply bg-canvas;
+    }
     body {
-        @apply bg-dark-bg text-white antialiased;
+        @apply bg-canvas text-ink antialiased;
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     }
 }
 
-.glass-panel {
-    @apply bg-dark-card/60 backdrop-blur-md border border-dark-border/50 shadow-xl;
-}
+@layer components {
+    /* Public site */
+    .card {
+        @apply bg-surface border border-line rounded-card shadow-card;
+    }
+    .card-title {
+        @apply text-[15px] font-semibold text-ink flex items-center gap-2;
+    }
+    .chip {
+        @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border border-line bg-surface text-ink-2 hover:border-brand-300 hover:text-brand-600 transition-colors;
+    }
+    .chip-active {
+        @apply bg-ink text-white border-ink hover:text-white hover:border-ink;
+    }
+    .field {
+        @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+    }
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-ink-2 transition-colors;
+    }
+    .btn-secondary {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas transition-colors;
+    }
+    .tabular {
+        font-variant-numeric: tabular-nums;
+    }
 
-.glass-card {
-    @apply bg-dark-card/40 backdrop-blur-sm border border-dark-border/30 hover:border-neon-blue/50 transition-all duration-300;
-}
-
-.text-glow {
-    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
-}
-
-.text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-neon-blue to-neon-purple;
+    /* Admin pages (dark theme) */
+    .glass-panel {
+        @apply bg-dark-card/60 backdrop-blur-md border border-dark-border/50 shadow-xl;
+    }
+    .glass-card {
+        @apply bg-dark-card/40 backdrop-blur-sm border border-dark-border/30 hover:border-neon-blue/50 transition-all duration-300;
+    }
 }

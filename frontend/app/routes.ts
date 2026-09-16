@@ -3,6 +3,9 @@ import { type RouteConfig, index, route } from '@react-router/dev/routes';
 export default [
     index('routes/home.tsx'),
     route('search', 'routes/search.tsx'),
+    route('map', 'routes/map.tsx'),
+    route('job-seekers', 'routes/job-seekers.tsx'),
+    route('data-sources', 'routes/data-sources.tsx'),
     route('dashboard', 'routes/dashboard.tsx'),
     // The slug is only there to carry the company name in the URL; the NZBN identifies the company
     // and a wrong or missing slug redirects to the right one.

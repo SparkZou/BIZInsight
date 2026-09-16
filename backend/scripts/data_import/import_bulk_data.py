@@ -15,7 +15,7 @@ import sys
 # Add backend directory to path to import app modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from app.services import bulk_import
+from app.services import bulk_import, site_stats
 
 
 def main() -> int:
@@ -39,6 +39,10 @@ def main() -> int:
                 conn.rollback()
                 failed.append(name)
                 print(f"  [ERROR] {e}")
+        if not failed:
+            # The public site reads precomputed tables; refresh them from the new register data.
+            print()
+            site_stats.rebuild(conn)
 
     print(f"\nImported {len(files) - len(failed)}/{len(files)} files.")
     if failed:

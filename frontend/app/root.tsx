@@ -2,10 +2,13 @@ import type { ReactNode } from 'react';
 import type { LinksFunction, MetaFunction } from 'react-router';
 import { Link, Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useRouteError } from 'react-router';
 import stylesheet from './app.css?url';
-import Navbar from './components/Navbar';
+import AppShell from './components/AppShell';
 import { DEFAULT_DESCRIPTION, SITE_NAME } from './lib/site';
 
 export const links: LinksFunction = () => [
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' },
     { rel: 'stylesheet', href: stylesheet },
     { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
 ];
@@ -24,15 +27,15 @@ export const meta: MetaFunction = ({ error }) => {
 
 export function Layout({ children }: { children: ReactNode }) {
     return (
-        <html lang="en-NZ" className="bg-dark-bg">
+        <html lang="en-NZ">
             <head>
                 <meta charSet="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <meta name="theme-color" content="#030712" />
+                <meta name="theme-color" content="#F4F7FB" />
                 <Meta />
                 <Links />
             </head>
-            <body className="min-h-screen bg-dark-bg text-white antialiased">
+            <body className="min-h-screen">
                 {children}
                 <ScrollRestoration />
                 <Scripts />
@@ -56,21 +59,16 @@ export function ErrorBoundary() {
             || 'The site hit an unexpected error. Please try again in a moment.';
 
     return (
-        <div className="min-h-screen">
-            <Navbar />
-            <main className="pt-36 pb-24 px-6 max-w-2xl mx-auto text-center">
-                <p className="font-mono text-sm text-neon-blue mb-3">{response ? `Error ${response.status}` : 'Error'}</p>
-                <h1 className="text-3xl font-bold mb-4">{title}</h1>
-                <p className="text-gray-400 mb-8">{detail}</p>
+        <AppShell>
+            <div className="card max-w-xl mx-auto mt-16 p-10 text-center">
+                <p className="text-xs font-semibold tracking-wider uppercase text-brand-600 mb-3">{response ? `Error ${response.status}` : 'Error'}</p>
+                <h1 className="text-2xl font-bold mb-3">{title}</h1>
+                <p className="text-ink-muted mb-8">{detail}</p>
                 <div className="flex flex-wrap justify-center gap-3">
-                    <Link to="/" className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-neon-blue/10 text-neon-blue border border-neon-blue/50 hover:bg-neon-blue hover:text-black transition-colors">
-                        Home page
-                    </Link>
-                    <Link to="/search" className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-white/5 border border-dark-border hover:bg-white/10 transition-colors">
-                        Search companies
-                    </Link>
+                    <Link to="/" className="btn-primary">Overview</Link>
+                    <Link to="/search" className="btn-secondary">Search companies</Link>
                 </div>
-            </main>
-        </div>
+            </div>
+        </AppShell>
     );
 }

@@ -2,15 +2,17 @@ import { Form } from 'react-router';
 import { Search } from 'lucide-react';
 
 /** A plain GET form to /search, so it works before JavaScript loads and as a client-side navigation after. */
-export default function SearchBar({ id = 'q', large = false, defaultValue = '', autoFocus = false }: {
+export default function SearchBar({ id = 'q', large = false, defaultValue = '', autoFocus = false, placeholder }: {
     id?: string;
     large?: boolean;
     defaultValue?: string;
     autoFocus?: boolean;
+    placeholder?: string;
 }) {
     return (
-        <Form method="get" action="/search" role="search" className="relative w-full group">
+        <Form method="get" action="/search" role="search" className="relative w-full">
             <label htmlFor={id} className="sr-only">Search companies</label>
+            <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint ${large ? 'w-5 h-5' : 'w-4 h-4'}`} />
             <input
                 id={id}
                 name="q"
@@ -19,11 +21,10 @@ export default function SearchBar({ id = 'q', large = false, defaultValue = '', 
                 autoFocus={autoFocus}
                 required
                 minLength={2}
-                placeholder="Company name, NZBN or director"
+                placeholder={placeholder ?? 'Search company name, NZBN or company number'}
                 autoComplete="off"
-                className={`w-full pl-11 pr-4 bg-dark-bg/60 border border-dark-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-neon-blue focus:ring-1 focus:ring-neon-blue transition-all ${large ? 'py-4 text-lg' : 'py-2.5 text-sm'}`}
+                className={`field pl-10 ${large ? 'py-3 text-base rounded-xl' : 'py-2 text-sm'}`}
             />
-            <Search className={`absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-neon-blue transition-colors ${large ? 'w-5 h-5' : 'w-4 h-4'}`} />
         </Form>
     );
 }

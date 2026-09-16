@@ -111,6 +111,89 @@ def search_companies(
             "error": "Search failed"
         }
 
+BROWSE_SORTS = {
+    "newest": "registration_date DESC NULLS LAST, nzbn",
+    "oldest": "registration_date ASC NULLS LAST, nzbn",
+    "name": "entity_name, nzbn",
+}
+
+
+@router.get("/browse")
+def browse_companies(
+    q: str = "",
+    region: str = "",
+    division: str = "",
+    entity_type: str = "",
+    status: str = "",
+    city: str = "",
+    website: Optional[bool] = None,
+    sort: str = "newest",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """
+    Filtered, paginated list over company_index (built after each bulk data import). q matches
+    the company name anywhere, or an exact NZBN / company number.
+    """
+    where = ["true"]
+    params: Dict[str, Any] = {"limit": page_size, "offset": (page - 1) * page_size}
+    q = q.strip()
+    if q:
+        if q.isdigit():
+            where.append("(nzbn = :q OR company_identifier = :q)")
+        else:
+            where.append("entity_name ILIKE :like")
+            params["like"] = f"%{q}%"
+            params["prefix"] = f"{q}%"
+        params["q"] = q
+    filters = {"region": region, "division": division.upper(), "entity_type": entity_type, "entity_status": status, "city": city}
+    for column, value in filters.items():
+        if value:
+            where.append(f"{column} = :{column}")
+            params[column] = value
+    if website is not None:
+        where.append("has_website = :website")
+        params["website"] = website
+
+    order = BROWSE_SORTS.get(sort, BROWSE_SORTS["newest"])
+    if q and not q.isdigit():
+        # Names that start with the search term come first.
+        order = f"(entity_name ILIKE :prefix) DESC, {order}"
+
+    # With no filters the window count would scan all 1.7M rows; the planner's estimate is exact
+    # enough for a page count and instant.
+    unfiltered = where == ["true"]
+    total_expr = "(SELECT reltuples::bigint FROM pg_class WHERE relname = 'company_index')" if unfiltered else "count(*) OVER ()"
+    sql = text(f"""
+        SELECT {total_expr} AS total,
+               nzbn, entity_name AS name, company_identifier, entity_type AS type, entity_status AS status,
+               registration_date, removal_date, division, industry_code, industry, city, region,
+               website, trading_name, director_count, shareholder_count, corporate_shareholder,
+               insolvency_count, insolvency_type, insolvency_date
+        FROM company_index
+        WHERE {' AND '.join(where)}
+        ORDER BY {order}
+        LIMIT :limit OFFSET :offset
+    """)
+    try:
+        rows = db.execute(sql, params).mappings().all()
+    except Exception as e:
+        if "company_index" in str(e):
+            raise HTTPException(status_code=503, detail="The company index is being built; try again in a few minutes.")
+        raise
+    total = rows[0]["total"] if rows else 0
+    results = []
+    for row in rows:
+        item = dict(row)
+        item.pop("total")
+        for key in ("registration_date", "removal_date", "insolvency_date"):
+            if item[key] is not None:
+                item[key] = item[key].isoformat()
+        results.append(item)
+    return {"total": total, "page": page, "page_size": page_size, "results": results}
+
+
 @router.get("/{nzbn}")
 def get_company_details(
     nzbn: str,

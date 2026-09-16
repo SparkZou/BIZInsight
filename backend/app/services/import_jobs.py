@@ -14,7 +14,7 @@ from typing import List, Optional
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.import_job import ImportJob
-from app.services import bulk_import
+from app.services import bulk_import, site_stats
 
 _slot = threading.Lock()
 
@@ -99,6 +99,10 @@ def _run(job_id: int, csv_paths: List[str], batch_dir: str) -> None:
                     failed.append(os.path.basename(path))
                     log(f"  [ERROR] {e}")
                 _update(job_id, files_done=done, rows_imported=rows_imported)
+
+            if not failed:
+                # The public site reads precomputed tables; refresh them from the new register data.
+                site_stats.rebuild(conn, log=log)
 
         if failed:
             log(f"Imported {len(csv_paths) - len(failed)}/{len(csv_paths)} files.")

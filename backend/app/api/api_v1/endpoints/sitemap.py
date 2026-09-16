@@ -77,7 +77,7 @@ def sitemap_index():
 @router.get("/static.xml")
 def sitemap_static():
     lastmod = dataset_summary()["as_at"]
-    pages = [("/", "daily", "1.0"), ("/dashboard", "weekly", "0.6")]
+    pages = [("/", "daily", "1.0"), ("/map", "weekly", "0.7"), ("/job-seekers", "weekly", "0.7"), ("/data-sources", "monthly", "0.5")]
     entries = "".join(
         f"<url><loc>{settings.SITE_URL}{path}</loc><lastmod>{lastmod}</lastmod><changefreq>{freq}</changefreq><priority>{prio}</priority></url>"
         for path, freq, prio in pages

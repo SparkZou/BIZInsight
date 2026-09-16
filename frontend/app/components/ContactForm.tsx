@@ -1,138 +1,62 @@
 import { useState } from 'react';
-import { Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import type { ChangeEvent, FormEvent } from 'react';
+import { AlertCircle, CheckCircle, Loader2, Send } from 'lucide-react';
 
 export default function ContactForm() {
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        company: '',
-        message: ''
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [form, setForm] = useState({ name: '', email: '', company: '', message: '' });
+    const [submitting, setSubmitting] = useState(false);
+    const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        setSubmitStatus('idle');
-
+    const submit = async (event: FormEvent) => {
+        event.preventDefault();
+        setSubmitting(true);
+        setStatus('idle');
         try {
-            const response = await fetch('/api/v1/contact', {
+            const res = await fetch('/api/v1/contact', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(form),
             });
-
-            if (response.ok) {
-                setSubmitStatus('success');
-                setFormData({ name: '', email: '', company: '', message: '' });
-            } else {
-                setSubmitStatus('error');
-            }
-        } catch (error) {
-            setSubmitStatus('error');
+            setStatus(res.ok ? 'success' : 'error');
+            if (res.ok) setForm({ name: '', email: '', company: '', message: '' });
+        } catch {
+            setStatus('error');
         } finally {
-            setIsSubmitting(false);
+            setSubmitting(false);
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData(prev => ({
-            ...prev,
-            [e.target.name]: e.target.value
-        }));
-    };
+    const change = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+        setForm(previous => ({ ...previous, [event.target.name]: event.target.value }));
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
-                    <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-dark-bg/50 border border-dark-border rounded-lg text-white focus:ring-2 focus:ring-neon-blue focus:border-transparent transition-all outline-none"
-                        placeholder="John Doe"
-                    />
-                </div>
-                <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-dark-bg/50 border border-dark-border rounded-lg text-white focus:ring-2 focus:ring-neon-blue focus:border-transparent transition-all outline-none"
-                        placeholder="john@company.com"
-                    />
-                </div>
+        <form onSubmit={submit} className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+                <label className="block">
+                    <span className="block text-sm font-medium text-ink-2 mb-1">Your name</span>
+                    <input id="contact-name" name="name" required value={form.name} onChange={change} className="field" placeholder="Jane Smith" />
+                </label>
+                <label className="block">
+                    <span className="block text-sm font-medium text-ink-2 mb-1">Email address</span>
+                    <input id="contact-email" name="email" type="email" required value={form.email} onChange={change} className="field" placeholder="jane@example.co.nz" />
+                </label>
             </div>
-
-            <div>
-                <label htmlFor="company" className="block text-sm font-medium text-gray-300 mb-2">Company (Optional)</label>
-                <input
-                    type="text"
-                    id="company"
-                    name="company"
-                    value={formData.company}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-dark-bg/50 border border-dark-border rounded-lg text-white focus:ring-2 focus:ring-neon-blue focus:border-transparent transition-all outline-none"
-                    placeholder="Acme Inc."
-                />
-            </div>
-
-            <div>
-                <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">Message</label>
-                <textarea
-                    id="message"
-                    name="message"
-                    required
-                    rows={4}
-                    value={formData.message}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-dark-bg/50 border border-dark-border rounded-lg text-white focus:ring-2 focus:ring-neon-blue focus:border-transparent transition-all outline-none resize-none"
-                    placeholder="How can we help you?"
-                />
-            </div>
-
-            <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-4 bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-neon-blue/20"
-            >
-                {isSubmitting ? (
-                    <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Transmitting...
-                    </>
-                ) : (
-                    <>
-                        <Send className="w-5 h-5" />
-                        Send Message
-                    </>
-                )}
+            <label className="block">
+                <span className="block text-sm font-medium text-ink-2 mb-1">Company (optional)</span>
+                <input id="contact-company" name="company" value={form.company} onChange={change} className="field" placeholder="Company name or NZBN" />
+            </label>
+            <label className="block">
+                <span className="block text-sm font-medium text-ink-2 mb-1">Message</span>
+                <textarea id="contact-message" name="message" required rows={4} value={form.message} onChange={change} className="field resize-none" placeholder="A question, a correction, or a removal request" />
+            </label>
+            <button type="submit" disabled={submitting} className="btn-primary disabled:opacity-50">
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Send message
             </button>
-
-            {submitStatus === 'success' && (
-                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-3 text-green-400">
-                    <CheckCircle className="w-5 h-5" />
-                    <span>Message received. We will initiate contact shortly.</span>
-                </div>
+            {status === 'success' && (
+                <p className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"><CheckCircle className="w-4 h-4" /> Thanks - your message has been received.</p>
             )}
-
-            {submitStatus === 'error' && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-3 text-red-400">
-                    <AlertCircle className="w-5 h-5" />
-                    <span>Transmission failed. Please try again later.</span>
-                </div>
+            {status === 'error' && (
+                <p className="flex items-center gap-2 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"><AlertCircle className="w-4 h-4" /> The message could not be sent. Please try again in a moment.</p>
             )}
         </form>
     );
