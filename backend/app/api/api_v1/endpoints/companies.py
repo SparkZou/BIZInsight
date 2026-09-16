@@ -130,11 +130,13 @@ def browse_companies(
     sort: str = "newest",
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    count: bool = True,
     db: Session = Depends(get_db),
 ):
     """
     Filtered, paginated list over company_index (built after each bulk data import). q matches
-    the company name anywhere, or an exact NZBN / company number.
+    the company name anywhere, or an exact NZBN / company number. count=false skips the total
+    (a scan of every matching row) for lists that only show the first few.
     """
     where = ["true"]
     params: Dict[str, Any] = {"limit": page_size, "offset": (page - 1) * page_size}
@@ -164,7 +166,12 @@ def browse_companies(
     # With no filters the window count would scan all 1.7M rows; the planner's estimate is exact
     # enough for a page count and instant.
     unfiltered = where == ["true"]
-    total_expr = "(SELECT reltuples::bigint FROM pg_class WHERE relname = 'company_index')" if unfiltered else "count(*) OVER ()"
+    if not count:
+        total_expr = "0"
+    elif unfiltered:
+        total_expr = "(SELECT reltuples::bigint FROM pg_class WHERE relname = 'company_index')"
+    else:
+        total_expr = "count(*) OVER ()"
     sql = text(f"""
         SELECT {total_expr} AS total,
                nzbn, entity_name AS name, company_identifier, entity_type AS type, entity_status AS status,

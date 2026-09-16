@@ -104,6 +104,8 @@ export interface BrowseFilters {
     sort?: string;
     page?: number;
     page_size?: number;
+    /** 'false' skips the total for lists that only show the first few rows. */
+    count?: 'false';
 }
 
 export function browseQuery(filters: BrowseFilters): string {

@@ -157,8 +157,10 @@ export default function SearchPanel({ filters, options, result, action = '/searc
         setSelectedNzbn(result.results[0]?.nzbn ?? null);
     }, [result]);
     const selected = result.results.find(row => row.nzbn === selectedNzbn) ?? result.results[0];
+    // A compact list is fetched without a total (count=false), so it shows what it has.
+    const knownTotal = result.total > 0 || result.results.length === 0;
     const pageCount = Math.max(1, Math.ceil(result.total / result.page_size));
-    const pageHref = (page: number) => `${action}?${browseQuery({ ...filters, page })}`;
+    const pageHref = (page: number) => `${action}?${browseQuery({ ...filters, page, count: undefined })}`;
 
     return (
         <section className="card p-5">
@@ -176,7 +178,9 @@ export default function SearchPanel({ filters, options, result, action = '/searc
             <div className={`mt-4 grid gap-4 ${compact ? 'xl:grid-cols-[1fr_18rem]' : 'xl:grid-cols-[1fr_20rem]'}`}>
                 <div className="min-w-0">
                     <p className="text-xs text-ink-muted mb-2 tabular">
-                        {result.total === 0 ? 'No companies match.' : `${formatNumber(result.total)} ${result.total === 1 ? 'company' : 'companies'}${result.total > result.page_size ? ` · showing ${(result.page - 1) * result.page_size + 1}-${Math.min(result.page * result.page_size, result.total)}` : ''}`}
+                        {!knownTotal
+                            ? `Newest ${result.results.length} registered companies`
+                            : result.total === 0 ? 'No companies match.' : `${formatNumber(result.total)} ${result.total === 1 ? 'company' : 'companies'}${result.total > result.page_size ? ` · showing ${(result.page - 1) * result.page_size + 1}-${Math.min(result.page * result.page_size, result.total)}` : ''}`}
                     </p>
                     <div className="overflow-x-auto -mx-1">
                         <table className="w-full text-sm text-left min-w-[640px]">
@@ -222,8 +226,10 @@ export default function SearchPanel({ filters, options, result, action = '/searc
                             {result.page < pageCount ? <Link to={pageHref(result.page + 1)} className="btn-secondary">Next <ChevronRight className="w-4 h-4" /></Link> : <span />}
                         </nav>
                     )}
-                    {compact && result.total > result.results.length && (
-                        <Link to={`/search?${browseQuery(filters)}`} className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline mt-3">See all {formatNumber(result.total)} results <ArrowRight className="w-4 h-4" /></Link>
+                    {compact && (result.total > result.results.length || !knownTotal) && (
+                        <Link to={`/search?${browseQuery({ ...filters, count: undefined })}`} className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline mt-3">
+                            {knownTotal ? `See all ${formatNumber(result.total)} results` : 'See all results'} <ArrowRight className="w-4 h-4" />
+                        </Link>
                     )}
                 </div>
                 {selected && <Preview company={selected} />}

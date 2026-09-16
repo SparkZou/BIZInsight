@@ -16,7 +16,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const [insights, dataset, browse] = await Promise.all([
         apiJson<Insights>('/api/v1/insights'),
         apiJson<DatasetSummary>('/api/v1/dataset'),
-        apiJson<BrowseResponse>(`/api/v1/companies/browse?${browseQuery({ status: 'Registered', page_size: 6 })}`),
+        apiJson<BrowseResponse>(`/api/v1/companies/browse?${browseQuery({ status: 'Registered', page_size: 6, count: 'false' })}`),
     ]);
     const selectedRegion = insights.regions.find(item => item.region === region) ?? insights.regions[0];
     return {
@@ -131,7 +131,7 @@ export default function Overview() {
                 <Card title="Ownership" icon={Sparkles}>
                     <Donut centerValue={`${individualShare}%`} centerLabel="individually owned" items={ownershipItems} />
                 </Card>
-                <Card title="Incorporation trends" icon={TrendingUp}>
+                <Card title="Incorporation trends" icon={TrendingUp} className="xl:col-span-2 min-[1800px]:col-span-1">
                     <TrendLine points={trend} />
                 </Card>
             </div>

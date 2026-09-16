@@ -12,7 +12,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const [insights, dataset] = await Promise.all([apiJson<Insights>('/api/v1/insights'), apiJson<DatasetSummary>('/api/v1/dataset')]);
     const selected = insights.divisions.find(item => item.code === code) ?? null;
     const newest = selected
-        ? (await apiJson<BrowseResponse>(`/api/v1/companies/browse?${browseQuery({ division: selected.code, status: 'Registered', page_size: 8 })}`)).results
+        ? (await apiJson<BrowseResponse>(`/api/v1/companies/browse?${browseQuery({ division: selected.code, status: 'Registered', page_size: 8, count: 'false' })}`)).results
         : [];
     return { overview: insights.overview, divisions: insights.divisions, age: insights.age, selected, newest, asAt: dataset.as_at, importedAt: dataset.imported_at };
 }

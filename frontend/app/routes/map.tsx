@@ -14,7 +14,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const requested = url.searchParams.get('region') || '';
     const known = insights.regions.filter(item => item.region !== 'Unknown');
     const selected = known.find(item => item.region === requested) ?? known[0];
-    const newest = await apiJson<BrowseResponse>(`/api/v1/companies/browse?${browseQuery({ region: selected.region, status: 'Registered', page_size: 6 })}`);
+    const newest = await apiJson<BrowseResponse>(`/api/v1/companies/browse?${browseQuery({ region: selected.region, status: 'Registered', page_size: 6, count: 'false' })}`);
     return { overview: insights.overview, regions: known, selected, newest: newest.results, asAt: dataset.as_at, importedAt: dataset.imported_at };
 }
 
