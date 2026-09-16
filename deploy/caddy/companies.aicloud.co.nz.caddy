@@ -2,6 +2,9 @@
 # BIZInsight —— 新西兰公司数据查询 https://companies.aicloud.co.nz
 # 追加到 /opt/webApp/caddy/Caddyfile 后热加载：
 #   docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+# 注意：Caddyfile 是以单个文件 bind mount 进容器的，修改时必须原地写入（>> 追加、或 cat > 覆盖），
+# 不能用 sed -i / 编辑器"另存"这类会换 inode 的方式——否则容器里仍是旧内容，reload 不生效，
+# 只能 docker restart shared-caddy（会让这台机器上所有站点中断几秒）。
 # 容器（网络 shared-proxy-network）：
 #   bizinsight-web     : 服务端渲染的站点（Node / React Router），监听 3000；自己处理 404、robots.txt、sitemap
 #   bizinsight-backend : FastAPI，监听 8000（/api/*）

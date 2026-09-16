@@ -49,10 +49,12 @@ main() {
 
     # One-time switch of the shared Caddy from the old nginx container to the Node site. Only the
     # upstream line of this site's block is touched; other sites in the file are left alone.
+    # The Caddyfile is bind-mounted into the Caddy container as a single file, so it has to be
+    # rewritten in place (same inode): "sed -i" would leave the container reading the old copy.
     if grep -q 'reverse_proxy bizinsight-frontend:80' "$CADDYFILE" 2> /dev/null; then
-        if ! sed -i 's/reverse_proxy bizinsight-frontend:80/reverse_proxy bizinsight-web:3000/' "$CADDYFILE" 2> /dev/null; then
-            sudo -n sed -i 's/reverse_proxy bizinsight-frontend:80/reverse_proxy bizinsight-web:3000/' "$CADDYFILE"
-        fi
+        local updated
+        updated="$(sed 's/reverse_proxy bizinsight-frontend:80/reverse_proxy bizinsight-web:3000/' "$CADDYFILE")"
+        printf '%s\n' "$updated" > "$CADDYFILE"
         $DOCKER exec shared-caddy caddy reload --config /etc/caddy/Caddyfile
         echo "Caddy now sends the site to bizinsight-web:3000."
     fi
