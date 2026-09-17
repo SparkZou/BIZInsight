@@ -86,6 +86,9 @@ services:
     # containers, so this stays modest: work_mem in particular multiplies across the joins of the
     # monthly company_index build, and 32MB was enough to get the build OOM-killed.
     command: ["postgres", "-c", "shared_buffers=192MB", "-c", "effective_cache_size=512MB", "-c", "work_mem=8MB", "-c", "maintenance_work_mem=64MB"]
+    # Parallel joins in the monthly company_index build hand their hash tables to worker processes
+    # through /dev/shm, which Docker caps at 64MB by default ("could not resize shared memory segment").
+    shm_size: "512mb"
     environment:
       POSTGRES_DB: nzcompanies
       POSTGRES_USER: bizinsight
