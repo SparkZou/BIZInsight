@@ -606,19 +606,29 @@ def ensure_built_in_background() -> None:
     """
     import threading
 
+    def attempt() -> bool:
+        with bulk_import.connect() as conn:
+            current = False
+            if _table_exists(conn, "company_index") and _table_exists(conn, "site_stats"):
+                row = conn.execute("SELECT value FROM site_stats WHERE key = 'version'").fetchone()
+                current = bool(row) and row[0].get("version") == STATS_VERSION
+            if current:
+                return True
+            print("site_stats: precomputed tables missing or outdated, building them now")
+            rebuild(conn)
+            return True
+
     def run() -> None:
-        try:
-            with bulk_import.connect() as conn:
-                current = False
-                if _table_exists(conn, "company_index") and _table_exists(conn, "site_stats"):
-                    row = conn.execute("SELECT value FROM site_stats WHERE key = 'version'").fetchone()
-                    current = bool(row) and row[0].get("version") == STATS_VERSION
-                if current:
+        # A deploy can restart the database while this runs (its container is recreated when its
+        # settings change), which drops the connection mid-build; wait and try again.
+        for wait in (0, 30, 90, 300):
+            time.sleep(wait)
+            try:
+                if attempt():
                     return
-                print("site_stats: precomputed tables missing or outdated, building them now")
-                rebuild(conn)
-        except Exception as e:
-            print(f"site_stats: could not build the precomputed tables: {e}")
+            except Exception as e:
+                print(f"site_stats: could not build the precomputed tables ({e}); retrying")
+        print("site_stats: giving up; run 'python -m app.services.site_stats' by hand")
 
     threading.Thread(target=run, name="site-stats-bootstrap", daemon=True).start()
 

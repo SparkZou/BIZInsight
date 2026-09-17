@@ -82,9 +82,10 @@ services:
     container_name: bizinsight-db
     restart: unless-stopped
     # The 1.7M-row company_index and its indexes are read on every public page; the defaults
-    # (128MB of shared buffers) keep them on disk. The server has 4GB shared with other apps, so
-    # this stays modest.
-    command: ["postgres", "-c", "shared_buffers=256MB", "-c", "effective_cache_size=768MB", "-c", "work_mem=32MB", "-c", "maintenance_work_mem=128MB"]
+    # (128MB of shared buffers) keep them on disk. The server has 4GB shared with twenty other
+    # containers, so this stays modest: work_mem in particular multiplies across the joins of the
+    # monthly company_index build, and 32MB was enough to get the build OOM-killed.
+    command: ["postgres", "-c", "shared_buffers=192MB", "-c", "effective_cache_size=512MB", "-c", "work_mem=8MB", "-c", "maintenance_work_mem=64MB"]
     environment:
       POSTGRES_DB: nzcompanies
       POSTGRES_USER: bizinsight
