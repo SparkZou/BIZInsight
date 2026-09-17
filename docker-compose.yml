@@ -61,6 +61,18 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:-}
       DATA_DIR: /data
+      # Who runs the site (privacy statement, terms, footer) - override in ./.env if it changes.
+      OPERATOR_NAME: ${OPERATOR_NAME:-AICLOUD LIMITED}
+      OPERATOR_EMAIL: ${OPERATOR_EMAIL:-privacy@aicloud.co.nz}
+      OPERATOR_ADDRESS: ${OPERATOR_ADDRESS:-}
+      # The mailbox that sends account emails; set SMTP_HOST, SMTP_USER, SMTP_PASSWORD and
+      # SMTP_FROM in ./.env to switch email confirmation and password resets on.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_SSL: ${SMTP_SSL:-false}
     volumes:
       # Companies Office bulk CSVs: written by the /admin import and deploy/import-bulk-data.sh
       - ./data:/data
