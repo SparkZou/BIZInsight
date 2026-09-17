@@ -89,8 +89,9 @@ HEALTH_FACTORS = {
     "age": 30, "status": 25, "insolvency": 15, "directors": 12, "ownership": 8, "presence": 10,
 }
 HEALTH_THRESHOLDS = {"Established": 80, "Developing": 60, "Watch": 40}
-# Bump when the score, the labels or the shape of site_stats change: the API rebuilds on start.
-STATS_VERSION = 3
+# Bump when the score, the labels, the indexes or the shape of site_stats change: the API rebuilds
+# on start.
+STATS_VERSION = 5
 
 MACRONS = str.maketrans("āēīōū", "aeiou")
 
@@ -247,17 +248,22 @@ def build_company_index(conn: psycopg.Connection, log: Callable[[str], None] = p
         FROM scored
     """
 
+    # The public lists always filter and then order by registration date, so each composite index
+    # is "filter columns, then registration_date DESC, nzbn" - exactly the ORDER BY the browse
+    # endpoint uses (BROWSE_SORTS in endpoints/companies.py), so the first rows of a list come
+    # straight off the index without a sort, and counts can be answered from the index alone.
     indexes = [
         ("company_index_nzbn_idx", "(nzbn)"),
         ("company_index_entity_name_trgm", "USING gin (entity_name gin_trgm_ops)"),
-        ("company_index_status_idx", "(entity_status)"),
-        ("company_index_region_idx", "(region)"),
-        ("company_index_division_idx", "(division)"),
-        ("company_index_city_idx", "(city)"),
-        ("company_index_registration_date_idx", "(registration_date DESC)"),
-        ("company_index_insolvency_date_idx", "(insolvency_date DESC)"),
-        ("company_index_health_idx", "(health_label, health_score DESC)"),
         ("company_index_identifier_idx", "(company_identifier)"),
+        ("company_index_registration_date_idx", "(registration_date DESC, nzbn)"),
+        ("company_index_insolvency_date_idx", "(insolvency_date DESC, nzbn)"),
+        ("company_index_status_date_idx", "(entity_status, registration_date DESC, nzbn)"),
+        ("company_index_region_status_date_idx", "(region, entity_status, registration_date DESC, nzbn)"),
+        ("company_index_division_status_date_idx", "(division, entity_status, registration_date DESC, nzbn)"),
+        ("company_index_division_region_status_date_idx", "(division, region, entity_status, registration_date DESC, nzbn)"),
+        ("company_index_city_region_status_date_idx", "(city, region, entity_status, registration_date DESC, nzbn)"),
+        ("company_index_health_idx", "(health_label, health_score DESC, registration_date DESC, nzbn)"),
     ]
     with conn.cursor() as cur:
         cur.execute("DROP TABLE IF EXISTS company_index__new")
@@ -271,6 +277,13 @@ def build_company_index(conn: psycopg.Connection, log: Callable[[str], None] = p
             cur.execute(f"ALTER INDEX {quoted(name + '__new')} RENAME TO {quoted(name)}")
         rows = cur.execute("SELECT count(*) FROM company_index").fetchone()[0]
     conn.commit()
+    # A fresh table has no visibility map, so index-only scans would still visit every row until
+    # the first vacuum; run it now. VACUUM cannot run inside a transaction.
+    conn.autocommit = True
+    try:
+        conn.execute("VACUUM ANALYZE company_index")
+    finally:
+        conn.autocommit = False
     log(f"  [OK] company_index: {rows:,} companies in {time.monotonic() - started:.1f}s")
     return rows
 

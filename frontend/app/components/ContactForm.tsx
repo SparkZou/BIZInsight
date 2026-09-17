@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { AlertCircle, CheckCircle, Loader2, Send } from 'lucide-react';
 
-export default function ContactForm() {
-    const [form, setForm] = useState({ name: '', email: '', company: '', message: '' });
+export default function ContactForm({ company = '', message = '' }: { company?: string; message?: string }) {
+    const [form, setForm] = useState({ name: '', email: '', company, message });
     const [submitting, setSubmitting] = useState(false);
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
 

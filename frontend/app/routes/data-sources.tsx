@@ -1,4 +1,4 @@
-import type { MetaFunction } from 'react-router';
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { Link, useLoaderData } from 'react-router';
 import { Database, FileText, Mail, ShieldCheck } from 'lucide-react';
 import AppShell from '../components/AppShell';
@@ -7,9 +7,12 @@ import ContactForm from '../components/ContactForm';
 import { apiJson, type DatasetSummary, type Insights } from '../lib/api';
 import { SITE_NAME, formatDate, formatNumber, pageMeta } from '../lib/site';
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
+    const url = new URL(request.url);
     const [dataset, insights] = await Promise.all([apiJson<DatasetSummary>('/api/v1/dataset'), apiJson<Insights>('/api/v1/insights')]);
-    return { dataset, overview: insights.overview, computedAt: insights.computed_at };
+    // Company pages link here with ?company=<name> (NZBN <nzbn>) so a correction request starts filled in.
+    const company = (url.searchParams.get('company') || '').slice(0, 200);
+    return { dataset, overview: insights.overview, computedAt: insights.computed_at, company };
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => pageMeta({
@@ -19,7 +22,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => pageMeta({
 });
 
 export default function DataSources() {
-    const { dataset, overview, computedAt } = useLoaderData<typeof loader>();
+    const { dataset, overview, computedAt, company } = useLoaderData<typeof loader>();
     return (
         <AppShell asAt={dataset.as_at} importedAt={dataset.imported_at}>
             <div className="mb-5">
@@ -71,8 +74,9 @@ export default function DataSources() {
                 </Card>
             </div>
 
-            <Card title="Get in touch" icon={Mail} className="mt-4 max-w-3xl">
-                <ContactForm />
+            <Card title={company ? 'Report an issue with a company profile' : 'Get in touch'} icon={Mail} className="mt-4 max-w-3xl">
+                {company && <p className="text-sm text-ink-2 mb-4">Tell us what is wrong with the profile of <b>{company}</b> - a suppressed address, an outdated filing, or a score you disagree with - and we will check it within five working days.</p>}
+                <ContactForm key={company} company={company} />
             </Card>
         </AppShell>
     );

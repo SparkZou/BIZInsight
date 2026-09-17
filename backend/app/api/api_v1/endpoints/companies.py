@@ -113,12 +113,15 @@ def search_companies(
             "error": "Search failed"
         }
 
+# Each ORDER BY matches a composite index on company_index exactly (see build_company_index in
+# services/site_stats.py), so filtered lists read their first page straight off the index.
+# registration_date is never null in the register data, so no NULLS LAST is needed.
 BROWSE_SORTS = {
-    "newest": "registration_date DESC NULLS LAST, nzbn",
-    "oldest": "registration_date ASC NULLS LAST, nzbn",
+    "newest": "registration_date DESC, nzbn",
+    "oldest": "registration_date ASC, nzbn DESC",
     "name": "entity_name, nzbn",
-    "health": "health_score DESC NULLS LAST, registration_date DESC NULLS LAST, nzbn",
-    "insolvency": "insolvency_date DESC NULLS LAST, nzbn",
+    "health": "health_score DESC, registration_date DESC, nzbn",
+    "insolvency": "insolvency_date DESC, nzbn",
 }
 HEALTH_LABELS = {"Established", "Developing", "Watch", "Distressed", "Removed"}
 MONTH = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")

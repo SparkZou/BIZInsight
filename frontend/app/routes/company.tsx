@@ -327,7 +327,7 @@ export default function CompanyPage() {
                     <p className="text-xs text-ink-muted px-1">
                         Source: New Zealand Companies Office register, monthly bulk data extract as at <span className="text-ink">{formatDate(dataset.as_at)}</span>.
                         Filings made since then are not shown - see the <a href={officialUrl} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline inline-flex items-center gap-1">official register entry <ExternalLink className="w-3 h-3" /></a>.
-                        Something wrong, or a suppressed address showing? <Link to="/data-sources" className="text-brand-600 hover:underline">Tell us</Link>.
+                        Something wrong, or a suppressed address showing? <Link to={`/data-sources?company=${encodeURIComponent(`${company.ENTITY_NAME} (NZBN ${company.NZBN})`)}`} className="text-brand-600 hover:underline">Tell us</Link>.
                     </p>
                 </div>
 
@@ -357,7 +357,7 @@ export default function CompanyPage() {
                                 </>
                             )}
                             <p className="text-xs text-ink-muted mt-3">
-                                <Link to="/health-indicator" className="text-brand-600 hover:underline">How this is computed</Link> · <Link to="/data-sources" className="text-brand-600 hover:underline">Report an issue</Link>
+                                <Link to="/health-indicator" className="text-brand-600 hover:underline">How this is computed</Link> · <Link to={`/data-sources?company=${encodeURIComponent(`${company.ENTITY_NAME} (NZBN ${company.NZBN})`)}`} className="text-brand-600 hover:underline">Report an issue</Link>
                             </p>
                         </section>
                     )}
