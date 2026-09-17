@@ -33,6 +33,79 @@ export async function apiJson<T>(path: string): Promise<T> {
     return res.json() as Promise<T>;
 }
 
+/** The visitor's session cookie, to pass on when a loader calls the API on the server. */
+export function forwardCookie(request: Request): Record<string, string> {
+    const cookie = request.headers.get('cookie');
+    return cookie ? { cookie } : {};
+}
+
+/** Like apiJson but for calls that may legitimately answer 401/403/404: returns the status instead of throwing. */
+export async function apiTry<T>(path: string, init?: RequestInit): Promise<{ status: number; data: T | null; detail: string | null }> {
+    try {
+        const res = await apiFetch(path, init);
+        const body = await res.json().catch(() => null);
+        return { status: res.status, data: res.ok ? (body as T) : null, detail: body && typeof body.detail === 'string' ? body.detail : null };
+    } catch {
+        return { status: 0, data: null, detail: UNAVAILABLE };
+    }
+}
+
+/** Browser-side JSON POST/DELETE to the API on the site's own origin (cookies included). */
+export async function postJson<T = Record<string, unknown>>(path: string, body?: object, method = 'POST'): Promise<{ ok: boolean; status: number; data: T | null; detail: string | null }> {
+    try {
+        const res = await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+        const data = await res.json().catch(() => null);
+        return { ok: res.ok, status: res.status, data: res.ok ? (data as T) : null, detail: data && typeof data.detail === 'string' ? data.detail : null };
+    } catch {
+        return { ok: false, status: 0, data: null, detail: 'The site could not be reached. Check your connection and try again.' };
+    }
+}
+
+export interface SessionUser {
+    id: number;
+    email: string;
+    name: string | null;
+    verified: boolean;
+    created_at: string;
+    can_view_people: boolean;
+    email_configured: boolean;
+}
+
+export interface SiteInfo {
+    name: string;
+    url: string;
+    operator: { name: string; email: string; address: string };
+    features: { accounts: boolean; email: boolean };
+}
+
+export interface RootData {
+    user: SessionUser | null;
+    site: SiteInfo | null;
+}
+
+export interface PersonSummary {
+    name: string; slug: string; directorships: number; shareholdings: number; companies: string[];
+}
+
+export interface PersonRole {
+    nzbn: string; company: string; status: string | null; city: string | null; region: string | null; division: string | null;
+    health_label: HealthLabel | null; registered: string | null; removed: string | null;
+    appointed?: string | null; asic_company?: string | null; shares?: string | null; since?: string | null;
+}
+
+export interface PersonDetail {
+    name: string; slug: string;
+    summary: { directorships: number; shareholdings: number; active_companies: number };
+    directorships: PersonRole[]; shareholdings: PersonRole[]; note: string;
+}
+
+export interface ViewEntry {
+    kind: 'profile' | 'person' | 'person_search';
+    subject: string;
+    label: string | null;
+    viewed_at: string;
+}
+
 /** Serves an XML document produced by the API (sitemaps) from the site's own origin. */
 export async function proxyXml(path: string): Promise<Response> {
     const res = await apiFetch(path);

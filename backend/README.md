@@ -142,6 +142,16 @@ Once running, access interactive API docs at:
 - `DELETE /api/v1/admin/unsubscribes/{email}` - Take an address off the list
 - `GET /api/v1/admin/search?q=&people=true&page=1&page_size=50` - Search every register by name, NZBN or company number, and companies by director or shareholder name
 
+### Visitor accounts (session cookie `nzci_session` on `/`)
+- `POST /api/v1/auth/register` - `{"email", "password", "name"}`; signs in and, when SMTP is configured, emails a confirmation link
+- `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`
+- `POST /api/v1/auth/verify` `{"token"}`, `POST /api/v1/auth/resend-verification`, `POST /api/v1/auth/forgot` `{"email"}`, `POST /api/v1/auth/reset` `{"token", "password"}`
+- `POST /api/v1/auth/views` `{"kind", "subject", "label"}` - note a company or person the user looked at; `GET`/`DELETE /api/v1/auth/me/views` - the user's own history; `DELETE /api/v1/auth/me` - delete the account
+- `GET /api/v1/people/search?q=` and `GET /api/v1/people/{slug}` - directors and individual shareholders by name (signed in, and email-confirmed once SMTP is on); every call is recorded in the user's history
+- `GET /api/v1/site` - operator details and which optional features are on
+
+Settings: `OPERATOR_NAME`, `OPERATOR_EMAIL`, `OPERATOR_ADDRESS`, `USER_SESSION_DAYS`, and `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_SSL` for the mailbox that sends verification and reset links (without `SMTP_HOST` the links are only logged and addresses stay unverified).
+
 ## ⚙️ Configuration
 
 All settings are read from `backend/.env` (see `.env.example`):

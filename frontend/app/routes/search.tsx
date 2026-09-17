@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
-import { useLoaderData } from 'react-router';
+import { Link, useLoaderData } from 'react-router';
 import AppShell from '../components/AppShell';
 import SearchPanel from '../components/SearchPanel';
 import { apiJson, browseQuery, type BrowseFilters, type BrowseResponse, type DatasetSummary, type Insights } from '../lib/api';
@@ -55,6 +55,7 @@ export default function SearchPage() {
                 <p className="text-ink-muted text-sm mt-1">Every company on the New Zealand register, filtered any way you need.</p>
             </div>
             <SearchPanel filters={filters} options={options} result={result} title="Search and filter" />
+            <p className="text-sm text-ink-muted mt-4">Looking for a person rather than a company? <Link to="/people" className="text-brand-600 hover:underline">Search directors and shareholders by name</Link> (free account required).</p>
         </AppShell>
     );
 }

@@ -6,6 +6,8 @@ export function loader() {
         'Allow: /',
         'Disallow: /admin',
         'Disallow: /api/',
+        'Disallow: /account',
+        'Disallow: /people',
         '',
         `Sitemap: ${SITE_URL}/sitemap.xml`,
         '',

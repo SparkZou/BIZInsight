@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { Link, NavLink } from 'react-router';
-import { Briefcase, Database, Home, Map, Search, UserRound } from 'lucide-react';
+import { Link, NavLink, useRouteLoaderData } from 'react-router';
+import { Briefcase, Database, Home, LogIn, Map, Search, UserRound, Users } from 'lucide-react';
 import BrandMark from './BrandMark';
 import SearchBar from './SearchBar';
+import type { RootData } from '../lib/api';
 import { SITE_NAME, SITE_TAGLINE, formatDate } from '../lib/site';
 
 const NAV = [
@@ -10,6 +11,7 @@ const NAV = [
     { to: '/search', label: 'Company Search', icon: Search, end: false },
     { to: '/industries', label: 'Industries', icon: Briefcase, end: false },
     { to: '/map', label: 'Map Explorer', icon: Map, end: false },
+    { to: '/people', label: 'People', icon: Users, end: false },
     { to: '/job-seekers', label: 'Job Seeker Insights', icon: UserRound, end: false },
     { to: '/data-sources', label: 'Data Sources', icon: Database, end: false },
 ];
@@ -21,10 +23,16 @@ const FOOTER_LINKS = [
     { to: '/insolvencies', label: 'Insolvencies by month' },
     { to: '/health-indicator', label: 'Company Health Indicator' },
     { to: '/data-sources', label: 'About the data' },
+    { to: '/privacy', label: 'Privacy' },
+    { to: '/terms', label: 'Terms of use' },
 ];
 
 /** Top bar, side navigation and the content area every public page sits in. */
 export default function AppShell({ children, asAt, importedAt }: { children: ReactNode; asAt?: string | null; importedAt?: string | null }) {
+    const root = useRouteLoaderData('root') as RootData | undefined;
+    const user = root?.user ?? null;
+    const operator = root?.site?.operator;
+
     return (
         <div className="min-h-screen bg-canvas text-ink">
             <header className="sticky top-0 z-40 h-16 bg-surface border-b border-line">
@@ -37,15 +45,23 @@ export default function AppShell({ children, asAt, importedAt }: { children: Rea
                         </span>
                     </Link>
                     <div className="flex-1 max-w-2xl mx-auto"><SearchBar id="top-q" /></div>
-                    <div className="hidden lg:flex items-center gap-6 text-xs shrink-0">
-                        <div>
+                    <div className="flex items-center gap-4 lg:gap-6 text-xs shrink-0">
+                        <div className="hidden xl:block">
                             <p className="text-ink-muted flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-teal-500" /> Data updated</p>
                             <p className="font-medium text-ink">{asAt ? formatDate(asAt) : 'Monthly extract'}</p>
                         </div>
-                        <div className="pl-6 border-l border-line">
+                        <div className="hidden xl:block pl-6 border-l border-line">
                             <p className="text-ink-muted">Data sources</p>
                             <Link to="/data-sources" className="font-medium text-ink hover:text-brand-600">Companies Office · NZBN</Link>
                         </div>
+                        {user ? (
+                            <Link to="/account" className="flex items-center gap-2 rounded-full border border-line bg-canvas px-3 py-1.5 text-sm font-medium text-ink hover:border-brand-300" title={user.email}>
+                                <span className="w-6 h-6 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center text-xs font-semibold">{(user.name || user.email).charAt(0).toUpperCase()}</span>
+                                <span className="hidden sm:inline max-w-[9rem] truncate">{user.name || user.email}</span>
+                            </Link>
+                        ) : (
+                            <Link to="/account/login" className="btn-primary text-xs px-3 py-1.5"><LogIn className="w-3.5 h-3.5" /> Sign in</Link>
+                        )}
                     </div>
                 </div>
             </header>
@@ -104,7 +120,7 @@ export default function AppShell({ children, asAt, importedAt }: { children: Rea
                         </nav>
                         <p>
                             Data: New Zealand Companies Office and NZBN register bulk data{asAt ? `, as at ${formatDate(asAt)}` : ''}{importedAt ? ` (loaded ${formatDate(importedAt.slice(0, 10))})` : ''}.
-                            {' '}{SITE_NAME} is not affiliated with the Companies Office.
+                            {' '}{SITE_NAME}{operator ? ` is run by ${operator.name} and` : ''} is not affiliated with the Companies Office.
                         </p>
                     </footer>
                 </div>

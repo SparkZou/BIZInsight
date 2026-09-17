@@ -36,6 +36,7 @@ target_metadata = Base.metadata
 # (re)created by app/services/bulk_import.py.
 MANAGED_TABLES = {
     "contact_messages", "import_jobs", "company_contact_details", "enrichment_jobs", "email_suppressions",
+    "users", "user_sessions", "email_tokens", "company_views",
 }
 
 

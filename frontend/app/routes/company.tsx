@@ -9,7 +9,7 @@ import AppShell from '../components/AppShell';
 import HealthPill from '../components/HealthPill';
 import InfoCard from '../components/InfoCard';
 import StatusPill from '../components/StatusPill';
-import { DIVISION_SHORT, ENTITY_TYPE_NAMES, apiFetch, apiJson, browseQuery, type BrowseResponse, type CompanyRow, type DatasetSummary } from '../lib/api';
+import { DIVISION_SHORT, ENTITY_TYPE_NAMES, apiFetch, apiJson, browseQuery, forwardCookie, type BrowseResponse, type CompanyRow, type DatasetSummary } from '../lib/api';
 import { SITE_NAME, absoluteUrl, cityPath, companyPath, companySlug, formatDate, formatNumber, pageMeta, regionPath, slugify } from '../lib/site';
 import type { Address, CompanyDetails } from '../types/company';
 
@@ -25,7 +25,7 @@ const HEALTH_FACTORS: { key: 'pts_age' | 'pts_status' | 'pts_insolvency' | 'pts_
 ];
 const divisionSlug = (code: string) => `${code.toLowerCase()}-${slugify(DIVISION_SHORT[code] ?? code)}`;
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params, request }: LoaderFunctionArgs) {
     const nzbn = params.nzbn || '';
     if (!/^\d{5,13}$/.test(nzbn)) throw data({ message: 'Company not found' }, { status: 404 });
 
@@ -43,8 +43,19 @@ export async function loader({ params }: LoaderFunctionArgs) {
     if (params.slug !== slug || nzbn !== company.NZBN) throw redirect(companyPath(company.NZBN, company.ENTITY_NAME), 301);
 
     const summary: CompanyRow | null = index?.results.find(row => row.nzbn === company.NZBN) ?? null;
+
+    // Signed-in visitors keep a history of the profiles they open (see the privacy statement).
+    const cookie = forwardCookie(request);
+    if (cookie.cookie?.includes('nzci_session=')) {
+        await apiFetch('/api/v1/auth/views', {
+            method: 'POST', headers: { ...cookie, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ kind: 'profile', subject: company.NZBN, label: company.ENTITY_NAME }),
+        }).catch(() => undefined);
+    }
     return { company, dataset, summary };
 }
+
+const personSlug = (...parts: Array<string | null | undefined>) => slugify(parts.filter(Boolean).join(' '));
 
 export const headers: HeadersFunction = () => ({ 'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600' });
 
@@ -235,7 +246,9 @@ export default function CompanyPage() {
                                         <div className="w-10 h-10 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center font-semibold shrink-0">{director.FIRST_NAME?.[0]}{director.LAST_NAME?.[0]}</div>
                                         <div className="min-w-0">
                                             <p className="font-medium text-ink">{[director.FIRST_NAME, director.MIDDLE_NAMES, director.LAST_NAME].filter(Boolean).join(' ')}</p>
-                                            <p className="text-xs text-ink-muted">Appointed {formatDate(director.START_DATE)}{director.ASIC_DIR_YN === 'Y' && director.ASIC_COMPANY_NAME ? ` · ${director.ASIC_COMPANY_NAME}` : ''}</p>
+                                            <p className="text-xs text-ink-muted">Appointed {formatDate(director.START_DATE)}{director.ASIC_DIR_YN === 'Y' && director.ASIC_COMPANY_NAME ? ` · ${director.ASIC_COMPANY_NAME}` : ''}
+                                                {' · '}<Link to={`/people/${personSlug(director.FIRST_NAME, director.MIDDLE_NAMES, director.LAST_NAME)}`} className="text-brand-600 hover:underline">Other companies</Link>
+                                            </p>
                                         </div>
                                     </li>
                                 ))}
@@ -258,7 +271,13 @@ export default function CompanyPage() {
                                     <tbody className="divide-y divide-line">
                                         {shareholders.map((holder, index) => (
                                             <tr key={index}>
-                                                <td className="p-3 text-ink">{holder.SH_NAME}{holder.START_DATE && <span className="block text-xs text-ink-faint">since {formatDate(holder.START_DATE)}</span>}</td>
+                                                <td className="p-3 text-ink">
+                                                    {holder.SH_NAME}
+                                                    <span className="block text-xs text-ink-faint">
+                                                        {holder.START_DATE && <>since {formatDate(holder.START_DATE)}</>}
+                                                        {holder.SH_TYPE === 'Shareholder Individual' && <>{holder.START_DATE ? ' · ' : ''}<Link to={`/people/${personSlug(holder.SH_NAME)}`} className="text-brand-600 hover:underline">Other companies</Link></>}
+                                                    </span>
+                                                </td>
                                                 <td className="p-3 text-ink-muted">{(holder.SH_TYPE || '').replace(/^Shareholder\s*/, '') || '-'}</td>
                                                 <td className="p-3 text-right tabular">{formatNumber(Number(holder.NUMBER_OF_SHARES))}</td>
                                                 <td className="p-3 text-right text-ink-muted tabular">{totalShares ? `${((Number(holder.NUMBER_OF_SHARES) / totalShares) * 100).toFixed(1)}%` : '-'}</td>

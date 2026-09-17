@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import type { LinksFunction, MetaFunction } from 'react-router';
+import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { Link, Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useRouteError } from 'react-router';
 import stylesheet from './app.css?url';
 import AppShell from './components/AppShell';
+import { apiFetch, forwardCookie, type RootData, type SessionUser, type SiteInfo } from './lib/api';
 import { DEFAULT_DESCRIPTION, SITE_NAME } from './lib/site';
 
 export const links: LinksFunction = () => [
@@ -12,6 +13,18 @@ export const links: LinksFunction = () => [
     { rel: 'stylesheet', href: stylesheet },
     { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
 ];
+
+// Who is signed in and who runs the site; every page's shell reads this through useRouteLoaderData('root').
+export async function loader({ request }: LoaderFunctionArgs): Promise<RootData> {
+    const [user, site] = await Promise.all([
+        apiFetch('/api/v1/auth/me', { headers: forwardCookie(request) })
+            .then(res => (res.ok ? res.json() : { user: null }))
+            .then(body => (body?.user ?? null) as SessionUser | null)
+            .catch(() => null),
+        apiFetch('/api/v1/site').then(res => (res.ok ? (res.json() as Promise<SiteInfo>) : null)).catch(() => null),
+    ]);
+    return { user, site };
+}
 
 // Only used when a route has no meta of its own, which is the case while showing an error.
 export const meta: MetaFunction = ({ error }) => {

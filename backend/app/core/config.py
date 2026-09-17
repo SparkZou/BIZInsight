@@ -11,8 +11,24 @@ class Settings(BaseSettings):
 
     # Comma-separated list of allowed CORS origins ("*" allows all)
     BACKEND_CORS_ORIGINS: str = "*"
-    # Public origin of the site, used for absolute URLs in sitemaps.
+    # Public origin of the site, used for absolute URLs in sitemaps and emails.
     SITE_URL: str = "https://companies.aicloud.co.nz"
+    SITE_NAME: str = "NZ Company Intelligence"
+
+    # Who runs the site - shown in the privacy statement, the terms and the footer.
+    OPERATOR_NAME: str = "AICLOUD LIMITED"
+    OPERATOR_EMAIL: str = "privacy@aicloud.co.nz"
+    OPERATOR_ADDRESS: str = ""
+
+    # Visitor accounts: how long a sign-in lasts, and the mailbox that sends verification and
+    # password-reset links. With no SMTP_HOST the emails are only logged and addresses stay unverified.
+    USER_SESSION_DAYS: int = 30
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM: Optional[str] = None  # e.g. "NZ Company Intelligence <noreply@aicloud.co.nz>"
+    SMTP_SSL: bool = False  # true for port 465 (implicit TLS); otherwise STARTTLS is used
 
     # Admin page (/admin). Login stays disabled until ADMIN_PASSWORD is set.
     ADMIN_USERNAME: str = "admin"

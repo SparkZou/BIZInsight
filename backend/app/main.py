@@ -5,10 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.api_v1.endpoints import (
     admin, admin_companies, admin_enrichment, admin_search, admin_unsubscribes,
-    dashboard, dataset, contact, companies, insights, sitemap,
+    auth, dashboard, dataset, contact, companies, insights, people, site, sitemap,
 )
 from app.api.endpoints import stats
-from app.services import enrichment_jobs, import_jobs, site_stats
+from app.services import accounts, enrichment_jobs, import_jobs, site_stats
 
 
 @asynccontextmanager
@@ -19,6 +19,8 @@ async def lifespan(app: FastAPI):
     enrichment_jobs.mark_interrupted_jobs()
     # The public site reads precomputed tables (company_index, site_stats); build them if missing.
     site_stats.ensure_built_in_background()
+    # Expired sessions and links, and view history past its retention period.
+    accounts.purge_old_records()
     yield
 
 
@@ -38,6 +40,9 @@ app.include_router(dashboard.router, prefix=f"{settings.API_V1_STR}", tags=["das
 app.include_router(dataset.router, prefix=f"{settings.API_V1_STR}", tags=["dataset"])
 app.include_router(sitemap.router, prefix=f"{settings.API_V1_STR}/sitemap", tags=["sitemap"])
 app.include_router(insights.router, prefix=f"{settings.API_V1_STR}/insights", tags=["insights"])
+app.include_router(site.router, prefix=f"{settings.API_V1_STR}", tags=["site"])
+app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["accounts"])
+app.include_router(people.router, prefix=f"{settings.API_V1_STR}/people", tags=["people"])
 app.include_router(contact.router, prefix=f"{settings.API_V1_STR}", tags=["contact"])
 app.include_router(companies.router, prefix=f"{settings.API_V1_STR}/companies", tags=["companies"])
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
